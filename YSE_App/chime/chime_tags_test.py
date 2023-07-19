@@ -15,7 +15,7 @@ import pandas
 
 from IPython import embed
 
-def run(delete_existing:bool=False):
+def run(delete_existing:bool=False, delete_transients:bool=True):
     """ Test the CHIME FRB tags
 
     Args:
@@ -52,14 +52,15 @@ def run(delete_existing:bool=False):
             assert 'CHIME-Blind' in [t.name for t in t.frb_tags.all()]
 
     # Break it all down
-    if flag_CHIME:
-        obs.delete()
+    #if flag_CHIME:
+    #    obs.delete()
 
     #for new_tag in new_tags:
     #    new_tag.delete()
 
-    for dbtransient in dbtransients:
-        dbtransient.delete()
+    if delete_transients:
+        for dbtransient in dbtransients:
+            dbtransient.delete()
 
     # Finish
     print(Transient.objects.all())
