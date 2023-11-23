@@ -207,7 +207,7 @@ def grab_targets_by_mode(frb_fu, frbs):
         if frb_fu.min_POx:
             gd_ids = []
             for frb in longslit_frbs:
-                if frb.host.P_Ox is not None and frb.host.P_Ox > frb_fu.min_POx:
+                if frb.host.P_Ox is not None and frb.sum_top_two_PATH > frb_fu.min_POx:
                     gd_ids.append(frb.id)
             longslit_frbs = longslit_frbs.filter(id__in=gd_ids)
 
