@@ -1730,6 +1730,8 @@ class FRBTransientTable(tables.Table):
 
     name_string = tables.TemplateColumn("<a href=\"{% url 'frb_transient_detail' record.slug %}\">{{ record.name }}</a>",
                                         verbose_name='Name',orderable=True,order_by='name')
+    eventid_string = tables.Column(accessor='eventid',
+                                        verbose_name='Event ID',orderable=True,order_by='event_id')
     ra_string = tables.Column(accessor='CoordString.0',
                               verbose_name='RA',orderable=True,order_by='ra')
     dec_string = tables.Column(accessor='CoordString.1',

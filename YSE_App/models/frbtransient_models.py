@@ -43,6 +43,10 @@ class FRBTransient(BaseModel):
     # Required
     # TNS name;  must be unique
     name = models.CharField(max_length=64, unique=True)
+
+    # Add eventid
+    eventid = models.CharField(max_length=64, null=True, blank=True)
+    
     # RA in deg
     ra = models.FloatField()
     # Dec in deg
