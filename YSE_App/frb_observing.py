@@ -226,3 +226,24 @@ def ingest_z(z_tbl:pandas.DataFrame):
 
     return 200, "All good"
     
+def ingest_eventid(eventid_tbl:pandas.DataFrame):
+    """ Update the transient with an event ID
+    from a table of event IDs
+        """
+    # Loop on rows
+    for _, row in eventid_tbl.iterrows():
+
+        # Grab the transient
+        try:
+            transient=FRBTransient.objects.get(name=row['TNS'])
+        except:
+            return 401, f"FRB {row['TNS']} not in DB"
+
+        # Update the transient
+        transient.eventid = row['event_id']
+        transient.save()
+        print(f"Updated {transient.name} with event ID {transient.eventid}")
+
+    return 200, "Event IDs updated"
+    
+

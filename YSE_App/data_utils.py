@@ -1833,3 +1833,47 @@ def ingest_frbs(request):
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def ingest_eventid(request):
+    """
+    Ingest a table of FRB Event IDs
+
+    The request must include the following items
+     in its data (all in JSON, of course; 
+     data types are for after parsing the JSON):
+
+      - table (str): a table of the request with columns 
+            TNS (str) -- TNS of the FRB 
+            frb_survey (str) -- TNS of the FRB 
+            eventid (str) -- Event ID of the FRB
+            eventid_type (str) -- Type of the Event ID
+            eventid_value (str) -- Value of the Event ID
+      - delete (bool): Delete FRBs first?
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    frb_tbl = pandas.read_json(data['table'])
+
+    # Run
+    code, msg = frb_observing.ingest_eventid(frb_tbl)
+
+    # Return
+    return JsonResponse({"message":f"{msg}"}, status=code)
