@@ -1694,7 +1694,7 @@ def frb_dashboard(request):
          ['Unassigned'], 
          ]):
         transients = FRBTransient.objects.filter(status__in=TransientStatus.objects.filter(
-            name__in=statusnames))
+            name__in=statusnames)).order_by('status')
         #status = TransientStatus.objects.filter(name__in=statusnames).order_by('-modified_date')
         #if len(status) == 1:
         #    transients = FRBTransient.objects.filter(status=status[0]).order_by('name')
