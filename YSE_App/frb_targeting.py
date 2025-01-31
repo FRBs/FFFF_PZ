@@ -279,9 +279,11 @@ def select_with_priority(frb_fu, frbs_by_mode:dict):
                     gd = np.where(rand < left_probs)[0]
                     if len(gd) > need:
                         gd = gd[:need]
-                    keep += list(np.array(still_left)[gd])
+                    # List me
+                    new_keep = list(np.array(still_left)[gd])
+                    keep += new_keep
                     # Remove
-                    for idx in gd:
+                    for idx in new_keep:
                         still_left.remove(idx)
                 # Finish
                 gd_ids = [frbs_by_mode[mode].all()[int(ii)].id for ii in keep]
