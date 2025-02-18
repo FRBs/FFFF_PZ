@@ -96,11 +96,7 @@ def ingest_path_results(itransient:FRBTransient,
             galaxy.redshift_source = icand.redshift_source
             galaxy.redshift_quality = 1
 
-        # Grab photo-zs from PS1
-        elif hasattr(icand, 'z_phot_median'):
-            galaxy.photoz = icand.z_phot_median
-            
-        # Grab photo-zs from DECaLS
+        # Grab photo-zs            
         elif hasattr(icand, 'z_phot_median'):
             galaxy.photoz = icand.z_phot_median
         else:
