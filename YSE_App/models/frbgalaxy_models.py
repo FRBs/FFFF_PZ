@@ -144,7 +144,6 @@ class FRBGalaxy(BaseModel):
         if self.photoz is None:
             return 'None'
         else:
-            #return '%.1f +/- %.1f' %(self.photoz,self.photoz_err)
             return '%.2f'%(self.photoz)
 
     

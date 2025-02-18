@@ -98,8 +98,7 @@ def ingest_path_results(itransient:FRBTransient,
 
         # Grab photo-zs from PS1
         elif hasattr(icand, 'z_phot'):
-            galaxy.photoz = icand.z_phot
-            galaxy.photoz_err = icand.z_photErr
+            galaxy.photoz = icand.z_phot_median
             
         # Grab photo-zs from DECaLS
         elif hasattr(icand, 'z_phot_median'):
