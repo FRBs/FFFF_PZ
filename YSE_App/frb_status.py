@@ -64,6 +64,13 @@ def set_status(frb):
 
     # Run in reverse order of completion
 
+    # Are top 2 P(O|x) > min(P_Ox_min)
+    if frb.host is not None:
+        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
+        print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
+        if (len(POx_mins) == 0) or (
+            frb.sum_top_two_PATH > np.min(POx_mins)):
+
     # #########################################################
     # #########################################################
     # Too Dusty??
