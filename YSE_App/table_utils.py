@@ -1630,6 +1630,8 @@ class CandidatesTable(tables.Table):
                                verbose_name='z',orderable=False)
     zQ_string = tables.Column(accessor='zQualString',
                                verbose_name='zQ',orderable=False)
+    photoz_string = tables.Column(accessor='photozString',
+                                  verbose_name='Photo z',orderable=False)
     #disc_date_string = tables.Column(accessor='disc_date_string',
     #                                 verbose_name='Disc. Date',orderable=True,order_by='disc_date')
     #recent_mag = tables.Column(accessor='recent_mag',

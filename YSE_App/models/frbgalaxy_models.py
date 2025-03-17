@@ -137,6 +137,16 @@ class FRBGalaxy(BaseModel):
             return 'None'
         else:
             return f'{self.redshift_quality}'
+        
+    def photozString(self):
+        """ Return the photometric redshift for the galaxy as a string (for viewing)
+        """
+        if self.photoz is None:
+            return 'None'
+        else:
+            return '%.2f'%(self.photoz)
+
+    
 
     @property
     def path_mag(self):

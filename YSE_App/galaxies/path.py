@@ -95,10 +95,10 @@ def ingest_path_results(itransient:FRBTransient,
             galaxy.redshift_err = icand.redshift_err
             galaxy.redshift_source = icand.redshift_source
             galaxy.redshift_quality = 1
-        elif hasattr(icand,'redshift_type') and icand.redshift_type == 'photo-z':
-            galaxy.photoz = icand.redshift
-            galaxy.photoz_err = icand.redshift_err
-            galaxy.photoz_source = icand.redshift_source
+
+        # Grab photo-zs            
+        elif hasattr(icand, 'z_phot_median'):
+            galaxy.photoz = icand.z_phot_median
         else:
             pass
         galaxy.save()
@@ -127,6 +127,7 @@ def ingest_path_results(itransient:FRBTransient,
                      galaxy=galaxy, P_Ox=icand.P_Ox,
                      created_by_id=user.id, modified_by_id=user.id)
         ipath.band = band
+
         ipath.save()
 
     print(f"Done with candidates.  Now P_Ux: {P_Ux}, {bright_star}")
