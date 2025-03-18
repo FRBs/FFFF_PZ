@@ -212,8 +212,11 @@ class FRBTransient(BaseModel):
         """ Grab lists of the PATH values and candidate galaxies
 
         Returns:
-            tuple: (list, list) of PATH values and candidate galaxies
+            tuple: (list, list, list) of PATH values and candidate galaxies
                 (FRBGalaxy objects) and PATH objects (Path)
+                path_values -- PATH P(O|x) values
+                galaxies -- FRBGalaxy objects
+                path_objs -- Path objects
         """
         path_values, galaxies, path_objs = [], [], []
         # Loop on the filtered table
