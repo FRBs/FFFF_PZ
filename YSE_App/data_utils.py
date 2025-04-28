@@ -1511,6 +1511,24 @@ def rm_frb_galaxy(request):
     return JsonResponse(data, status=201)
 
 @csrf_exempt
+def debug_request(request):
+    """
+    Debug endpoint to print out the incoming request method, headers, and body.
+    No JSON parsing, no assumptions.
+    """
+    print("\n=== DEBUGGING NEW REQUEST ===")
+    print(f"Request Method: {request.method}")
+    print(f"Request Content-Type: {request.content_type}")
+    print(f"Request Headers:")
+    for k, v in request.headers.items():
+        print(f"    {k}: {v}")
+    print(f"Raw Request Body: {request.body}")
+
+    return JsonResponse({"message": "Request debugged successfully."})
+
+
+
+@csrf_exempt
 @login_or_basic_auth_required
 def ingest_path(request):
     """
