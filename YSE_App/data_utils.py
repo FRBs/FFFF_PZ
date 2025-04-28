@@ -1531,6 +1531,11 @@ def ingest_path(request):
 @csrf_exempt
 @login_or_basic_auth_required
 def ingest_path(request):
+    print(f"Request method: {request.method}")
+    print(f"Request content-type: {request.content_type}")
+    print(f"Request body: {request.body}")
+    print(f"Authorization header: {request.META.get('HTTP_AUTHORIZATION')}")
+
     if request.method not in ['POST', 'PUT']:
         return JsonResponse({"message": "Method not allowed"}, status=405)
 
