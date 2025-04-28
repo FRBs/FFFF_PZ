@@ -1514,64 +1514,82 @@ def rm_frb_galaxy(request):
 @login_or_basic_auth_required
 def ingest_path(request):
     """
-    Ingest a PATH analysis into the DB
+    Ingest a PATH analysis into the DB.
 
-    The request must include the following items
-     in its data (all in JSON, of course; 
-     data types are for after parsing the JSON):
-
-      - transient_name (str): Name of the FRBTransient object
-        Must be in the DB already
-      - table (str): a table of the PATH candidates and their 
-        PATH results, stored as JSON
-      - F (str): name of filter; must be present in the
-        PhotometricBand table
-      - instrument (str): name of the instrument; must be present in the
-        Instrument table
-      - obs_group (str): name of the instrument; must be present in the
-        ObservationGroup table
-      - P_Ux (float): Unseen posterior;  added to the transient
-      - bright_star (int): 1 if the transient is near a bright star
-
-    Args:
-        request (requests.request): 
-            Request from outside FFFF-PZ
+    Expected POST data (JSON):
+      - transient_name (str)
+      - table (str, JSON stringified table)
+      - F (str, filter name)
+      - instrument (str)
+      - obs_group (str)
+      - P_Ux (float)
+      - bright_star (int)
 
     Returns:
-        JsonResponse: 
+      JsonResponse
     """
-    
-    # Parse the data into a dict
-    data = JSONParser().parse(request)
+@csrf_exempt
+@login_or_basic_auth_required
+def ingest_path(request):
+    if request.method not in ['POST', 'PUT']:
+        return JsonResponse({"message": "Method not allowed"}, status=405)
 
-    # Deal with credentials
-    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
-    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
-    username, password = credentials.split(':', 1)
-    user = auth.authenticate(username=username, password=password)
+    # If PUT, redo basic authentication manually
+    if request.method == 'PUT' and not request.user.is_authenticated:
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if auth_header:
+            try:
+                auth_method, credentials = auth_header.split(' ', 1)
+                if auth_method.lower() == 'basic':
+                    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+                    username, password = credentials.split(':', 1)
+                    user = authenticate(username=username, password=password)
+                    if user and user.is_authenticated:
+                        request.user = user
+            except Exception as e:
+                print(f"Failed to re-authenticate manually: {e}")
+                return JsonResponse({"message": "Authentication failed"}, status=401)
+
+    try:
+        data = JSONParser().parse(request)
+    except Exception as e:
+        return JsonResponse({"message": "Invalid JSON format"}, status=400)
+
+    required_fields = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+    missing = [field for field in required_fields if field not in data]
+    if missing:
+        return JsonResponse({"message": f"Missing fields: {', '.join(missing)}"}, status=400)
 
     try:
         itransient = FRBTransient.objects.get(name=data['transient_name'])
-    except:
-        return JsonResponse({"message":f"Could not find transient {data['transient_name']} in DB"}, status=400)
-    # Prep 
-    tbl = pandas.read_json(data['table'])
+    except FRBTransient.DoesNotExist:
+        return JsonResponse({"message": f"Could not find transient {data['transient_name']} in DB"}, status=400)
+
+    try:
+        tbl = pandas.read_json(data['table'])
+    except Exception as e:
+        return JsonResponse({"message": "Invalid table format"}, status=400)
+    
+    print(f"user={request.user}, is_authenticated={request.user.is_authenticated}")
+
 
     try:
         path.ingest_path_results(
             itransient, tbl, 
             data['F'], 
             data['instrument'], data['obs_group'],
-            data['P_Ux'], user,
+            data['P_Ux'], request.user,
             remove_previous=True,
-            bright_star=data['bright_star']) # May wish to make this optional
-    except:
-        print("Ingestion failed")
-        return JsonResponse({"message":f"Ingestion failed 2x!"}, status=405)
-    else:
-        print("Successfully ingested")
+            bright_star=data['bright_star'])
+    except Exception as e:
+        import traceback
+        print(f"Ingestion failed: {e}")
+        traceback.print_exc()  # <-- Print full stack trace to container logs
+        return JsonResponse({"message": f"Ingestion failed: {str(e)}"}, status=500)
 
-    return JsonResponse({"message":f"Ingestion successful"}, status=500)
+
+    print("Successfully ingested")
+    return JsonResponse({"message": "Ingestion successful"}, status=200)
 
 @csrf_exempt
 @login_or_basic_auth_required

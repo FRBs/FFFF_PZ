@@ -62,6 +62,9 @@ def ingest_path_results(itransient:FRBTransient,
     """
 
     # TODO -- move the following code to a utility module
+    if user is None or not user.is_authenticated:
+        raise ValueError("User must be authenticated to ingest PATH results")
+
     # Remove previous
     if remove_previous:
         for p in Path.objects.filter(transient=itransient):
@@ -123,9 +126,14 @@ def ingest_path_results(itransient:FRBTransient,
         itransient.candidates.add(galaxy)
 
         # PATH
-        ipath = Path(transient=itransient, 
-                     galaxy=galaxy, P_Ox=icand.P_Ox,
-                     created_by_id=user.id, modified_by_id=user.id)
+        ipath = Path(
+            transient=itransient,
+            galaxy=galaxy,
+            P_Ox=icand.P_Ox,
+            created_by=user,
+            modified_by=user
+        )
+
         ipath.band = band
 
         ipath.save()
