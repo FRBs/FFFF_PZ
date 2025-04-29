@@ -41,6 +41,14 @@ from YSE_App import frb_utils
 from YSE_App import frb_status
 from YSE_App import frb_tables
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import BasicAuthentication
+
+from django.utils.decorators import method_decorator
+
 from .models import *
 
 @csrf_exempt
@@ -1526,7 +1534,62 @@ def debug_request(request):
 
     return JsonResponse({"message": "Request debugged successfully."})
 
+@method_decorator(csrf_exempt, name='dispatch')
+class IngestPathView(APIView):
+    """
+    API endpoint for ingesting PATH results.
+    """
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request, format=None):
+        return self.handle_ingestion(request)
+
+    def put(self, request, format=None):
+        return self.handle_ingestion(request)
+
+    def handle_ingestion(self, request):
+        try:
+            # Now request.data is automatically parsed JSON
+            data = request.data
+
+            transient_name = data.get('transient_name')
+            if not transient_name:
+                return Response({"error": "Missing 'transient_name' field."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate required fields
+            required_fields = ['table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            missing = [field for field in required_fields if field not in data]
+            if missing:
+                return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get the transient
+            try:
+                itransient = FRBTransient.objects.get(name=transient_name)
+            except FRBTransient.DoesNotExist:
+                return Response({"error": f"Transient '{transient_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Parse the table
+            import pandas as pd
+            tbl = pd.read_json(data['table'])
+
+            # Ingest
+            path.ingest_path_results(
+                itransient, tbl,
+                data['F'],
+                data['instrument'],
+                data['obs_group'],
+                data['P_Ux'],
+                request.user,
+                remove_previous=True,
+                bright_star=data['bright_star']
+            )
+
+            return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Ingest error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @login_or_basic_auth_required
