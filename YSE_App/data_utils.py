@@ -1537,7 +1537,7 @@ def debug_request(request):
 @method_decorator(csrf_exempt, name='dispatch')
 class IngestPathView(APIView):
     """
-    API endpoint for ingesting PATH results.
+    API endpoint for ingesting PATH results, with full debug output.
     """
     authentication_classes = [BasicAuthentication]
     permission_classes = [IsAuthenticated]
@@ -1550,48 +1550,71 @@ class IngestPathView(APIView):
 
     def handle_ingestion(self, request):
         try:
+            # === DEBUG SECTION ===
+            print("========== DEBUG START ==========")
+            print(f"DEBUG: METHOD: {request.method}")
+            print(f"DEBUG: CONTENT-TYPE: {request.content_type}")
+            print(f"DEBUG: HEADERS: {dict(request.headers)}")
+            print(f"DEBUG: RAW BODY: {request.body}")
+            print(f"DEBUG: PARSED DATA: {request.data}")
+            print("========== DEBUG END ==========\n")
+
             # Now request.data is automatically parsed JSON
             allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
             data = {key: request.data.get(key) for key in allowed_keys}
 
-
+            # Validate 'transient_name' separately
             transient_name = data.get('transient_name')
             if not transient_name:
+                print("DEBUG: Missing 'transient_name'")
                 return Response({"error": "Missing 'transient_name' field."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Validate required fields
+            # Validate other required fields
             required_fields = ['table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
-            missing = [field for field in required_fields if field not in data]
+            missing = [field for field in required_fields if data.get(field) is None]
             if missing:
+                print(f"DEBUG: Missing fields: {missing}")
                 return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Get the transient
             try:
                 itransient = FRBTransient.objects.get(name=transient_name)
+                print(f"DEBUG: Found transient: {transient_name}")
             except FRBTransient.DoesNotExist:
+                print(f"DEBUG: Transient '{transient_name}' not found in DB.")
                 return Response({"error": f"Transient '{transient_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
             # Parse the table
-            import pandas as pd
-            tbl = pd.read_json(data['table'])
+            try:
+                tbl = pandas.DataFrame(data['table'])  # ✅
+                print(f"DEBUG: Parsed table with shape {tbl.shape}")
+            except Exception as e:
+                print(f"DEBUG: Error parsing table: {e}")
+                return Response({"error": "Invalid table JSON."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Ingest
-            path.ingest_path_results(
-                itransient, tbl,
-                data['F'],
-                data['instrument'],
-                data['obs_group'],
-                data['P_Ux'],
-                request.user,
-                remove_previous=True,
-                bright_star=data['bright_star']
-            )
+            # Ingest the PATH results
+            try:
+                path.ingest_path_results(
+                    itransient, tbl,
+                    data['F'],
+                    data['instrument'],
+                    data['obs_group'],
+                    data['P_Ux'],
+                    request.user,
+                    remove_previous=True,
+                    bright_star=data['bright_star']
+                )
+                print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
+            except Exception as e:
+                print(f"DEBUG: Error ingesting PATH results: {e}")
+                return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"Ingest error: {e}")
+            print(f"DEBUG: Ingest error (outer catch): {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @login_or_basic_auth_required

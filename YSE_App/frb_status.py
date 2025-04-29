@@ -104,7 +104,7 @@ def set_status(frb):
 
     if frb.host is not None:
         # 
-        if PATH_run and not POx_satisfied:
+        if PATH_run and not POx_satisfied_two:
             frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
             frb.save()
             return
