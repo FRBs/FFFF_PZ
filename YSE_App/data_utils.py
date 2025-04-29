@@ -1551,7 +1551,9 @@ class IngestPathView(APIView):
     def handle_ingestion(self, request):
         try:
             # Now request.data is automatically parsed JSON
-            data = request.data
+            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            data = {key: request.data.get(key) for key in allowed_keys}
+
 
             transient_name = data.get('transient_name')
             if not transient_name:
