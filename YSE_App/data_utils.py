@@ -1548,16 +1548,17 @@ class IngestPathView(APIView):
     def put(self, request, format=None):
         return self.handle_ingestion(request)
 
-    def handle_ingestion(self, request):
+    def handle_ingestion(self, request,dbg=False):
         try:
-            # === DEBUG SECTION ===
-            print("========== DEBUG START ==========")
-            print(f"DEBUG: METHOD: {request.method}")
-            print(f"DEBUG: CONTENT-TYPE: {request.content_type}")
-            print(f"DEBUG: HEADERS: {dict(request.headers)}")
-            print(f"DEBUG: RAW BODY: {request.body}")
-            print(f"DEBUG: PARSED DATA: {request.data}")
-            print("========== DEBUG END ==========\n")
+            if dbg:
+                # === DEBUG SECTION ===
+                print("========== DEBUG START ==========")
+                print(f"DEBUG: METHOD: {request.method}")
+                print(f"DEBUG: CONTENT-TYPE: {request.content_type}")
+                print(f"DEBUG: HEADERS: {dict(request.headers)}")
+                print(f"DEBUG: RAW BODY: {request.body}")
+                print(f"DEBUG: PARSED DATA: {request.data}")
+                print("========== DEBUG END ==========\n")
 
             # Now request.data is automatically parsed JSON
             allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
