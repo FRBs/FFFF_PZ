@@ -166,7 +166,7 @@ def set_status(frb):
 
         # Require redshift come from our measurement or was vetted
         source_ok = False
-        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini']:
+        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini','MMT']:
             if gd_source in frb.host.redshift_source:
                 source_ok = True
 
