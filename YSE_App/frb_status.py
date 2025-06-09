@@ -28,6 +28,8 @@ all_status = [\
     'SpectrumPending', # Pending spectroscopy with an FRBFollowUp
         # FRB appears in FRBFollowUpRequest with mode='longslit','mask'
     'GoodSpectrum', # Observed with spectroscopy successfully
+        # P(O|x) of top 2 > P_Ox_min
+        # If Primary does not exceed min_POx, then the top two must have a spectrum
     'TooDusty', # Sightline exceeds E(B-V) threshold
     'TooFaint', # Host is too faint for spectroscopy
         # r-magnitude (or equivalent; we use the PATH band) of the top host candidate
@@ -40,6 +42,9 @@ all_status = [\
         # Deep imaging must exist.  The list of telescope+intrument is below
         # P(U|x) > P_Ux_max
     'Redshift', # Redshift measured
+        # P(O|x) of top 2 > P_Ox_min
+        # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
+        # Else, take primary
 ]
 
 # List of telescope+instruments that are considered Deep
@@ -64,6 +69,23 @@ def set_status(frb):
 
     # Run in reverse order of completion
 
+    # Are top 2 P(O|x) > min(P_Ox_min)
+    POx_satisfied_two = False  # Sum of top 2 exceed min_POx
+    POx_satisfied_primary = False # Primary exceeds min_POx
+    PATH_run = False
+    if frb.host is not None:
+        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
+        if len(POx_mins) > 0: 
+            PATH_run = True
+            # Sum of two?
+            if frb.sum_top_two_PATH > np.min(POx_mins):
+                POx_satisfied_two = True
+            # Primary?
+            POx_values, galaxies, _ = frb.get_Path_values()
+            primary_POx = np.max(POx_values)
+            if primary_POx > np.min(POx_mins):
+                POx_satisfied_primary = True
+
     # #########################################################
     # #########################################################
     # Too Dusty??
@@ -81,11 +103,8 @@ def set_status(frb):
     # #########################################################
 
     if frb.host is not None:
-        # Require top 2 P(O|x) > min(P_Ox_min)
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        print(f"POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
-        if len(POx_mins) > 0 and (
-            frb.sum_top_two_PATH < np.min(POx_mins)):
+        # 
+        if PATH_run and not POx_satisfied_two:
             frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
             frb.save()
             return
@@ -126,31 +145,33 @@ def set_status(frb):
     # #########################################################
     # Redshift?
     # #########################################################
-    if frb.host is not None and frb.host.redshift is not None:
-        set_redshift = True
-        # Check whether the primary host has P(O|x) > min_POx
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        if len(POx_mins) > 0:
-            POx_min = np.min(POx_mins)
-            if frb.host.P_Ox > POx_min:
-                pass
-            else: # check whether the top two have redshifts
-                path_values, galaxies, _ = frb.get_Path_values()
-                argsrt = np.argsort(path_values)
-                for idx in argsrt[-2:]:
-                    gal = galaxies[idx]
-                    # TODO -- consider checking the redshift_quality
-                    if gal.redshift is None:
-                        set_redshift = False
+    if frb.host is not None and frb.host.redshift is not None and POx_satisfied_two:
+        has_redshift = False  # Does each galaxy have a redshift
+        path_values, galaxies, _ = frb.get_Path_values()
+        argsrt = np.argsort(path_values)
+        if POx_satisfied_primary: 
+            if galaxies[argsrt[-1]].redshift is not None:
+                has_redshift = True
+        else:
+            has_redshift = True
+            for idx in argsrt[-2:]:
+                gal = galaxies[idx]
+                # TODO -- consider checking the redshift_quality
+                if gal.redshift is None:
+                    has_redshift = False
+            # Check the redshifts are nearly the same
+            if has_redshift:
+                if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
+                    has_redshift = False
 
-        # Require redshift come fro mour measurement or was vetted
+        # Require redshift come from our measurement or was vetted
         source_ok = False
-        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini']:
+        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini','MMT']:
             if gd_source in frb.host.redshift_source:
                 source_ok = True
 
         # Do it?
-        if set_redshift and source_ok:
+        if has_redshift and source_ok:
             frb.status = TransientStatus.objects.get(name='Redshift')
             frb.save()
             return
@@ -173,7 +194,6 @@ def set_status(frb):
     # #########################################################
     # Good Spectrum
     # #########################################################
-
     if FRBFollowUpObservation.objects.filter(
             transient=frb,
             success=True,

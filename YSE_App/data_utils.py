@@ -41,6 +41,14 @@ from YSE_App import frb_utils
 from YSE_App import frb_status
 from YSE_App import frb_tables
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import BasicAuthentication
+
+from django.utils.decorators import method_decorator
+
 from .models import *
 
 @csrf_exempt
@@ -1511,67 +1519,103 @@ def rm_frb_galaxy(request):
     return JsonResponse(data, status=201)
 
 @csrf_exempt
-@login_or_basic_auth_required
-def ingest_path(request):
+def debug_request(request):
     """
-    Ingest a PATH analysis into the DB
-
-    The request must include the following items
-     in its data (all in JSON, of course; 
-     data types are for after parsing the JSON):
-
-      - transient_name (str): Name of the FRBTransient object
-        Must be in the DB already
-      - table (str): a table of the PATH candidates and their 
-        PATH results, stored as JSON
-      - F (str): name of filter; must be present in the
-        PhotometricBand table
-      - instrument (str): name of the instrument; must be present in the
-        Instrument table
-      - obs_group (str): name of the instrument; must be present in the
-        ObservationGroup table
-      - P_Ux (float): Unseen posterior;  added to the transient
-      - bright_star (int): 1 if the transient is near a bright star
-
-    Args:
-        request (requests.request): 
-            Request from outside FFFF-PZ
-
-    Returns:
-        JsonResponse: 
+    Debug endpoint to print out the incoming request method, headers, and body.
+    No JSON parsing, no assumptions.
     """
-    
-    # Parse the data into a dict
-    data = JSONParser().parse(request)
+    print("\n=== DEBUGGING NEW REQUEST ===")
+    print(f"Request Method: {request.method}")
+    print(f"Request Content-Type: {request.content_type}")
+    print(f"Request Headers:")
+    for k, v in request.headers.items():
+        print(f"    {k}: {v}")
+    print(f"Raw Request Body: {request.body}")
 
-    # Deal with credentials
-    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
-    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
-    username, password = credentials.split(':', 1)
-    user = auth.authenticate(username=username, password=password)
+    return JsonResponse({"message": "Request debugged successfully."})
 
-    try:
-        itransient = FRBTransient.objects.get(name=data['transient_name'])
-    except:
-        return JsonResponse({"message":f"Could not find transient {data['transient_name']} in DB"}, status=400)
-    # Prep 
-    tbl = pandas.read_json(data['table'])
+@method_decorator(csrf_exempt, name='dispatch')
+class IngestPathView(APIView):
+    """
+    API endpoint for ingesting PATH results, with full debug output.
+    """
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    try:
-        path.ingest_path_results(
-            itransient, tbl, 
-            data['F'], 
-            data['instrument'], data['obs_group'],
-            data['P_Ux'], user,
-            remove_previous=True,
-            bright_star=data['bright_star']) # May wish to make this optional
-    except:
-        print("Ingestion failed")
-        return JsonResponse({"message":f"Ingestion failed 2x!"}, status=405)
-    else:
-        print("Successfully ingested")
+    def post(self, request, format=None):
+        return self.handle_ingestion(request)
 
-    return JsonResponse({"message":f"Ingestion successful"}, status=500)
+    def put(self, request, format=None):
+        return self.handle_ingestion(request)
+
+    def handle_ingestion(self, request,dbg=False):
+        try:
+            if dbg:
+                # === DEBUG SECTION ===
+                print("========== DEBUG START ==========")
+                print(f"DEBUG: METHOD: {request.method}")
+                print(f"DEBUG: CONTENT-TYPE: {request.content_type}")
+                print(f"DEBUG: HEADERS: {dict(request.headers)}")
+                print(f"DEBUG: RAW BODY: {request.body}")
+                print(f"DEBUG: PARSED DATA: {request.data}")
+                print("========== DEBUG END ==========\n")
+
+            # Now request.data is automatically parsed JSON
+            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            data = {key: request.data.get(key) for key in allowed_keys}
+
+            # Validate 'transient_name' separately
+            transient_name = data.get('transient_name')
+            if not transient_name:
+                print("DEBUG: Missing 'transient_name'")
+                return Response({"error": "Missing 'transient_name' field."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate other required fields
+            required_fields = ['table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            missing = [field for field in required_fields if data.get(field) is None]
+            if missing:
+                print(f"DEBUG: Missing fields: {missing}")
+                return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get the transient
+            try:
+                itransient = FRBTransient.objects.get(name=transient_name)
+                print(f"DEBUG: Found transient: {transient_name}")
+            except FRBTransient.DoesNotExist:
+                print(f"DEBUG: Transient '{transient_name}' not found in DB.")
+                return Response({"error": f"Transient '{transient_name}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Parse the table
+            try:
+                tbl = pandas.DataFrame(data['table'])  # ✅
+                print(f"DEBUG: Parsed table with shape {tbl.shape}")
+            except Exception as e:
+                print(f"DEBUG: Error parsing table: {e}")
+                return Response({"error": "Invalid table JSON."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Ingest the PATH results
+            try:
+                path.ingest_path_results(
+                    itransient, tbl,
+                    data['F'],
+                    data['instrument'],
+                    data['obs_group'],
+                    data['P_Ux'],
+                    request.user,
+                    remove_previous=True,
+                    bright_star=data['bright_star']
+                )
+                print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
+            except Exception as e:
+                print(f"DEBUG: Error ingesting PATH results: {e}")
+                return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"DEBUG: Ingest error (outer catch): {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @login_or_basic_auth_required
@@ -1990,3 +2034,40 @@ def get_frb_table(request):
     
     # Return
     return JsonResponse(frbs.to_dict(), status=201)
+
+
+
+@csrf_exempt
+@login_or_basic_auth_required
+def get_frb_path_table(request):
+    """ Return a table of the PATH info for a given FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        path_values, galaxies, path_objs = obj.get_Path_values()
+        df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
+
+    return JsonResponse(df.to_dict(), status=200)
