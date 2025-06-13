@@ -45,10 +45,6 @@ all_status = [\
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
         # Else, take primary
-    'Ambiguousz',  
-        # The top candidate has P(O|x) < P_Ox_min
-        # but the top two candidates have Sum(P(O|x)) > P_Ox_min
-        #  But their redshifts are not consistent at 0.003
 ]
 
 # List of telescope+instruments that are considered Deep
@@ -197,7 +193,7 @@ def set_status(frb):
                 log_message += "I AM OK-"
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
                     log_message += "I AM NOT CONSINSTENT-"
-                    frb.status = TransientStatus.objects.get(name='Ambiguousz') 
+                    frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
                     frb.save()
                     return log_message
                 else:
