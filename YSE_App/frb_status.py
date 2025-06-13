@@ -183,19 +183,24 @@ def set_status(frb):
 
         # Time to set the status
         if primary_POx: 
+            print("I AM A PRIMARY")
             # Ok?
             if np.all(has_redshift) and np.all(source_ok):
                 frb.status = TransientStatus.objects.get(name='Redshift')
                 frb.save()
                 return
         else: # Top 2
+            print("I AM NOT A PRIMARY")
             # Check the redshifts are nearly the same
             if np.all(has_redshift) and np.all(source_ok):
+                print("I AM OK")
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
+                    print("I AM NOT CONSINSTENT")
                     frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
                     frb.save()
                     return
                 else:
+                    print("I AM CONSINSTENT")
                     frb.status = TransientStatus.objects.get(name='Redshift')
                     frb.save()
                     return
