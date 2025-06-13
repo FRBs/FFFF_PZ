@@ -45,10 +45,17 @@ all_status = [\
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
         # Else, take primary
+    'Ambiguousz',  
+        # The top candidate has P(O|x) < P_Ox_min
+        # but the top two candidates have Sum(P(O|x)) > P_Ox_min
+        #  But their redshifts are not consistent at 0.003
 ]
 
 # List of telescope+instruments that are considered Deep
 deep_telinstr = []
+
+# Good redshift sources
+good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini']
 
 
 # Add all of the chime
@@ -146,14 +153,63 @@ def set_status(frb):
     # Redshift?
     # #########################################################
     if frb.host is not None and frb.host.redshift is not None and POx_satisfied_two:
-        has_redshift = False  # Does each galaxy have a redshift
+        # Grab info
         path_values, galaxies, _ = frb.get_Path_values()
         argsrt = np.argsort(path_values)
+
+        # Items to loop over
         if POx_satisfied_primary: 
-            if galaxies[argsrt[-1]].redshift is not None:
-                has_redshift = True
+            idxs = argsrt[-1:]  # Primary is the last one
         else:
-            has_redshift = True
+            idxs = argsrt[-2:]  # Top 2
+
+        # Loop on the info
+        has_redshift = []
+        source_ok = []
+        for ss, idx in enumerate(idxs):
+            # Grab the galaxy
+            gal = galaxies[idx]
+            # Check redshift
+            if gal.redshift is None:
+                has_redshift.append(False)
+            else:
+                has_redshift.append(True)
+            # Check the redshift source
+            tmp_ok = False
+            for gd_source in good_z_sources:
+                if gd_source in gal.redshift_source:
+                    tmp_ok = True
+            source_ok.append(tmp_ok)
+
+        # Time to set the status
+        if primary_POx: 
+            # Ok?
+            if np.all(has_redshift) and np.all(source_ok):
+                frb.status = TransientStatus.objects.get(name='Redshift')
+                frb.save()
+                return
+        else: # Top 2
+            # Check the redshifts are nearly the same
+            if np.all(has_redshift) and np.all(source_ok):
+                if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
+                    frb.status = TransientStatus.objects.get(name='Ambiguousz') 
+                    frb.save()
+                    return
+                else:
+                    frb.status = TransientStatus.objects.get(name='Redshift')
+                    frb.save()
+                    return
+
+        '''
+        # Primary satisifies P(O|x) > min(P_Ox_min)
+        if POx_satisfied_primary: 
+            gal = galaxies[argsrt[-1]]
+            if gal.redshift is None:
+                has_redshift = False
+            for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini']:
+                if gd_source in frb.host.redshift_source:
+                    source_ok = True
+        else: # Primary does not satisify P(O|x) > min(P_Ox_min), but top 2 do
             for idx in argsrt[-2:]:
                 gal = galaxies[idx]
                 # TODO -- consider checking the redshift_quality
@@ -162,7 +218,10 @@ def set_status(frb):
             # Check the redshifts are nearly the same
             if has_redshift:
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    has_redshift = False
+                    #has_redshift = False
+                    frb.status = TransientStatus.objects.get(name='Ambiguousz') 
+                    frb.save()
+                    return
 
         # Require redshift come from our measurement or was vetted
         source_ok = False
@@ -175,6 +234,7 @@ def set_status(frb):
             frb.status = TransientStatus.objects.get(name='Redshift')
             frb.save()
             return
+        '''
  
     # #########################################################
     # Too Faint?
