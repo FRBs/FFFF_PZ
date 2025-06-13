@@ -192,7 +192,7 @@ def set_status(frb):
             # Check the redshifts are nearly the same
             if np.all(has_redshift) and np.all(source_ok):
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    frb.status = TransientStatus.objects.get(name='Ambiguous') 
+                    frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
                     frb.save()
                     return
                 else:
