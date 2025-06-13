@@ -1986,6 +1986,7 @@ def frb_update_status(request):
     user = auth.authenticate(username=username, password=password)
 
     # Run
+    log_message = ''
     for name in data['names']:
         print(f"Working on status of: {name}")
         # Grab the FRB
@@ -1993,10 +1994,11 @@ def frb_update_status(request):
             frb=FRBTransient.objects.get(name=name)
         except ObjectDoesNotExist:
             return JsonResponse({"message": f'FRB {name} not in DB'}, status=401)
-        frb_status.set_status(frb)
+        log = frb_status.set_status(frb)
+        log_message += f"{name}: {log}\n"
 
     # Return
-    return JsonResponse({"message": "All good!"}, status=200)
+    return JsonResponse({"message": f"All good! {log_message}"}, status=200)
 
 
 @csrf_exempt

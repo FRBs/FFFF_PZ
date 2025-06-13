@@ -67,6 +67,7 @@ def set_status(frb):
     Args:
         frb (FRBTransient): FRBTransient instance
     """
+    log_message = ''
 
     # Hide here for circular imports
     from YSE_App.models import TransientStatus
@@ -183,27 +184,27 @@ def set_status(frb):
 
         # Time to set the status
         if primary_POx: 
-            print("I AM A PRIMARY")
+            log_message += "I AM A PRIMARY-"
             # Ok?
             if np.all(has_redshift) and np.all(source_ok):
                 frb.status = TransientStatus.objects.get(name='Redshift')
                 frb.save()
-                return
+                return log_message
         else: # Top 2
-            print("I AM NOT A PRIMARY")
+            log_message += "I AM NOT A PRIMARY-"
             # Check the redshifts are nearly the same
             if np.all(has_redshift) and np.all(source_ok):
-                print("I AM OK")
+                log_message += "I AM OK-"
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    print("I AM NOT CONSINSTENT")
+                    log_message += "I AM NOT CONSINSTENT-"
                     frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
                     frb.save()
-                    return
+                    return log_message
                 else:
-                    print("I AM CONSINSTENT")
+                    log_message += "I AM CONSINSTENT-"
                     frb.status = TransientStatus.objects.get(name='Redshift')
                     frb.save()
-                    return
+                    return log_message
 
         '''
         # Primary satisifies P(O|x) > min(P_Ox_min)
