@@ -197,7 +197,7 @@ def set_status(frb):
                 log_message += "I AM OK-"
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
                     log_message += "I AM NOT CONSINSTENT-"
-                    frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
+                    frb.status = TransientStatus.objects.get(name='Ambiguousz') 
                     frb.save()
                     return log_message
                 else:
