@@ -183,7 +183,7 @@ def set_status(frb):
             source_ok.append(tmp_ok)
 
         # Time to set the status
-        if primary_POx: 
+        if POx_satisfied_primary:
             log_message += "I AM A PRIMARY-"
             # Ok?
             if np.all(has_redshift) and np.all(source_ok):
