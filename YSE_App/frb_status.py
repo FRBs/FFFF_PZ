@@ -51,7 +51,7 @@ all_status = [\
 deep_telinstr = []
 
 # Good redshift sources
-good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini']
+good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini', 'MMT']
 
 
 # Add all of the chime
@@ -89,6 +89,7 @@ def set_status(frb):
             primary_POx = np.max(POx_values)
             if primary_POx > np.min(POx_mins):
                 POx_satisfied_primary = True
+
 
     # #########################################################
     # #########################################################
