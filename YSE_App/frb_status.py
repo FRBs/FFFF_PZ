@@ -203,42 +203,6 @@ def set_status(frb):
                     frb.save()
                     return log_message
 
-        '''
-        # Primary satisifies P(O|x) > min(P_Ox_min)
-        if POx_satisfied_primary: 
-            gal = galaxies[argsrt[-1]]
-            if gal.redshift is None:
-                has_redshift = False
-            for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini']:
-                if gd_source in frb.host.redshift_source:
-                    source_ok = True
-        else: # Primary does not satisify P(O|x) > min(P_Ox_min), but top 2 do
-            for idx in argsrt[-2:]:
-                gal = galaxies[idx]
-                # TODO -- consider checking the redshift_quality
-                if gal.redshift is None:
-                    has_redshift = False
-            # Check the redshifts are nearly the same
-            if has_redshift:
-                if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    #has_redshift = False
-                    frb.status = TransientStatus.objects.get(name='Ambiguousz') 
-                    frb.save()
-                    return
-
-        # Require redshift come from our measurement or was vetted
-        source_ok = False
-        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini']:
-            if gd_source in frb.host.redshift_source:
-                source_ok = True
-
-        # Do it?
-        if has_redshift and source_ok:
-            frb.status = TransientStatus.objects.get(name='Redshift')
-            frb.save()
-            return
-        '''
- 
     # #########################################################
     # Too Faint?
     # #########################################################
