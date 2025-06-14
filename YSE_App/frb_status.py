@@ -16,6 +16,8 @@ all_status = [\
         # At least one frb_tag is in the list of run_public_path entries below
     'NeedImage', # Needs deeper imaging
         # P_Ux > maximum of all P_Ux_max for the frb_tags
+        #  or r-mag of the top candidate is too faint for the public survey
+        #   23.0 for Blanco/DECam, 21.0 for Pan-STARRS
         # No successful Image taken
         # No Image pending
     'NeedSpectrum', # Needs spectroscopy for redshift
@@ -73,11 +75,18 @@ def set_status(frb):
 
     # Run in reverse order of completion
 
-    # Are top 2 P(O|x) > min(P_Ox_min)
     POx_satisfied_two = False  # Sum of top 2 exceed min_POx
     POx_satisfied_primary = False # Primary exceeds min_POx
     PATH_run = False
+    r_too_faint = False # rfilter is too faint
+
+    # Checks on the top candidate (if it exists)
     if frb.host is not None:
+        POx_values, galaxies, _ = frb.get_Path_values()
+        argsrt = np.argsort(POx_values)
+        pri_gal = galaxies[argsrt[-1]]  # Primary galaxy
+
+        # Are top 2 P(O|x) > min(P_Ox_min)
         POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
         if len(POx_mins) > 0: 
             PATH_run = True
@@ -85,10 +94,18 @@ def set_status(frb):
             if frb.sum_top_two_PATH > np.min(POx_mins):
                 POx_satisfied_two = True
             # Primary?
-            POx_values, galaxies, _ = frb.get_Path_values()
             primary_POx = np.max(POx_values)
             if primary_POx > np.min(POx_mins):
                 POx_satisfied_primary = True
+
+        # Check the top candidate magnitude
+        rfilter = pri_gal.FilterMagString()
+        if 'Blanco' in rfilter or 'DECam' in rfilter:
+            if pri_gal.mag > 23.0:
+                r_too_faint = True
+        elif 'Pan-STARRS' in rfilter:
+            if pri_gal.mag > 21.0:
+                r_too_faint = True
 
 
     # #########################################################
@@ -241,6 +258,28 @@ def set_status(frb):
         return
 
     # #########################################################
+    # Need Image
+    # #########################################################
+
+    if frb.P_Ux is not None and frb.host is not None and (
+        not FRBFollowUpRequest.objects.filter(
+            transient=frb,
+            mode='image').exists()) and (
+        not FRBFollowUpObservation.objects.filter(
+            transient=frb,
+            success=True,
+            mode='image').exists()):
+
+        # Require top P_Ux > min(P_Ux_max)
+        #   or r_too_faint
+        PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
+        if (len(PUx_maxs) == 0) or (
+            frb.P_Ux > np.min(PUx_maxs)) or r_too_faint:
+            frb.status = TransientStatus.objects.get(name='NeedImage')
+            frb.save()
+            return
+
+    # #########################################################
     # Need Spectrum
     # #########################################################
 
@@ -255,34 +294,14 @@ def set_status(frb):
 
         # Require top 2 P(O|x) > min(P_Ox_min)
         POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
+        #print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
         if (len(POx_mins) == 0) or (
             frb.sum_top_two_PATH > np.min(POx_mins)):
             frb.status = TransientStatus.objects.get(name='NeedSpectrum') 
             frb.save()
             return
 
-    # #########################################################
-    # Need Image
-    # #########################################################
-
-    if frb.P_Ux is not None and frb.host is not None and (
-        not FRBFollowUpRequest.objects.filter(
-            transient=frb,
-            mode='image').exists()) and (
-        not FRBFollowUpObservation.objects.filter(
-            transient=frb,
-            success=True,
-            mode='image').exists()):
-
-        # Require top P_Ux > min(P_Ux_max)
-        PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
-        if (len(PUx_maxs) == 0) or (
-            frb.P_Ux > np.min(PUx_maxs)):
-            frb.status = TransientStatus.objects.get(name='NeedImage')
-            frb.save()
-            return
-
+ 
     # #########################################################
     # Run Public PATH
     # #########################################################
