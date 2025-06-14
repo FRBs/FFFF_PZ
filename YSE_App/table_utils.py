@@ -1630,6 +1630,8 @@ class CandidatesTable(tables.Table):
                                verbose_name='z',orderable=False)
     zQ_string = tables.Column(accessor='zQualString',
                                verbose_name='zQ',orderable=False)
+    z_source = tables.Column(accessor='zSource',
+                               verbose_name='Source',orderable=False)
     photoz_string = tables.Column(accessor='photozString',
                                   verbose_name='Photo z',orderable=False)
     #disc_date_string = tables.Column(accessor='disc_date_string',
@@ -1670,7 +1672,8 @@ class CandidatesTable(tables.Table):
     class Meta:
         model = FRBGalaxy
         fields = ('name_string','ra_string','dec_string','filter_string',
-                  'mag_string', 'POx_string', 'z_string', 'zQ_string') 
+                  'mag_string', 'POx_string', 'z_string', 'zQ_string',
+                  'z_source', 'photoz_string') 
 
         template_name='YSE_App/django-tables2/bootstrap.html'
         attrs = {
