@@ -148,14 +148,21 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
             transient=transient,
             resource=resource,
             mode=row['mode'],
+            date=pandas.Timestamp(row['date']))
+        extras = dict(
             conditions=row['Conditions'],
             texp=row['texp'],
-            date=pandas.Timestamp(row['date']),
             success=row['success'])
+
+        # Find any matches to the required fields
+        existing=FRBFollowUpObservation.objects.filter(**required)
+        # Delete these
+        for obj in existing:
+            obj.delete()
                                                                                   
         # Add to the table
         obs = frb_utils.add_or_grab_obj(
-            FRBFollowUpObservation, required, {}, user)
+            FRBFollowUpObservation, required, extras, user)
 
         # Remove all items from Pending`
         all_pending = FRBFollowUpRequest.objects.filter(

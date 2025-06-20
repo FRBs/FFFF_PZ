@@ -50,6 +50,9 @@ all_status = [\
 # List of telescope+instruments that are considered Deep
 deep_telinstr = []
 
+# Good redshift sources
+good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini', 'MMT']
+
 
 # Add all of the chime
 def set_status(frb):
@@ -60,6 +63,7 @@ def set_status(frb):
     Args:
         frb (FRBTransient): FRBTransient instance
     """
+    log_message = ''
 
     # Hide here for circular imports
     from YSE_App.models import TransientStatus
@@ -85,6 +89,7 @@ def set_status(frb):
             primary_POx = np.max(POx_values)
             if primary_POx > np.min(POx_mins):
                 POx_satisfied_primary = True
+
 
     # #########################################################
     # #########################################################
@@ -146,36 +151,58 @@ def set_status(frb):
     # Redshift?
     # #########################################################
     if frb.host is not None and frb.host.redshift is not None and POx_satisfied_two:
-        has_redshift = False  # Does each galaxy have a redshift
+        # Grab info
         path_values, galaxies, _ = frb.get_Path_values()
         argsrt = np.argsort(path_values)
+
+        # Items to loop over
         if POx_satisfied_primary: 
-            if galaxies[argsrt[-1]].redshift is not None:
-                has_redshift = True
+            idxs = argsrt[-1:]  # Primary is the last one
         else:
-            has_redshift = True
-            for idx in argsrt[-2:]:
-                gal = galaxies[idx]
-                # TODO -- consider checking the redshift_quality
-                if gal.redshift is None:
-                    has_redshift = False
+            idxs = argsrt[-2:]  # Top 2
+
+        # Loop on the info
+        has_redshift = []
+        source_ok = []
+        for ss, idx in enumerate(idxs):
+            # Grab the galaxy
+            gal = galaxies[idx]
+            # Check redshift
+            if gal.redshift is None:
+                has_redshift.append(False)
+            else:
+                has_redshift.append(True)
+            # Check the redshift source
+            tmp_ok = False
+            for gd_source in good_z_sources:
+                if gd_source in gal.redshift_source:
+                    tmp_ok = True
+            source_ok.append(tmp_ok)
+
+        # Time to set the status
+        if POx_satisfied_primary:
+            log_message += "I AM A PRIMARY-"
+            # Ok?
+            if np.all(has_redshift) and np.all(source_ok):
+                frb.status = TransientStatus.objects.get(name='Redshift')
+                frb.save()
+                return log_message
+        else: # Top 2
+            log_message += "I AM NOT A PRIMARY-"
             # Check the redshifts are nearly the same
-            if has_redshift:
+            if np.all(has_redshift) and np.all(source_ok):
+                log_message += "I AM OK-"
                 if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    has_redshift = False
+                    log_message += "I AM NOT CONSINSTENT-"
+                    frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
+                    frb.save()
+                    return log_message
+                else:
+                    log_message += "I AM CONSINSTENT-"
+                    frb.status = TransientStatus.objects.get(name='Redshift')
+                    frb.save()
+                    return log_message
 
-        # Require redshift come from our measurement or was vetted
-        source_ok = False
-        for gd_source in ['FFFF', 'Keck', 'Lick', 'Gemini','MMT']:
-            if gd_source in frb.host.redshift_source:
-                source_ok = True
-
-        # Do it?
-        if has_redshift and source_ok:
-            frb.status = TransientStatus.objects.get(name='Redshift')
-            frb.save()
-            return
- 
     # #########################################################
     # Too Faint?
     # #########################################################
