@@ -78,7 +78,7 @@ def set_status(frb):
     POx_satisfied_two = False  # Sum of top 2 exceed min_POx
     POx_satisfied_primary = False # Primary exceeds min_POx
     PATH_run = False
-    r_too_faint = False # rfilter is too faint
+    r_too_faint = False # rmag of primary candidate is too faint
 
     # Checks on the top candidate (if it exists)
     if frb.host is not None:
@@ -88,7 +88,7 @@ def set_status(frb):
 
         # Are top 2 P(O|x) > min(P_Ox_min)
         POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        if len(POx_mins) > 0: 
+        if len(POx_mins) > 0:
             PATH_run = True
             # Sum of two?
             if frb.sum_top_two_PATH > np.min(POx_mins):
