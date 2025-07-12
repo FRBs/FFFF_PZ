@@ -1846,8 +1846,8 @@ def ingest_frbs(request):
      data types are for after parsing the JSON):
 
       - table (str): a table of the request with columns 
-            TNS (str) -- TNS of the FRB 
-            frb_survey (str) -- TNS of the FRB 
+            name (str) -- TNS of the FRB 
+            frb_survey (str) -- Survey name, e.g. 
             ra (float) -- RA of the FRB (centroid) [deg]
             dec (float) -- Dec of the FRB (centroid) [deg]
             a_err (float) -- Semi-major localization error of the FRB [deg]
