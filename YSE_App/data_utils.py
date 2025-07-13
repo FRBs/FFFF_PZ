@@ -40,6 +40,7 @@ from YSE_App import frb_init
 from YSE_App import frb_utils
 from YSE_App import frb_status
 from YSE_App import frb_tables
+from YSE_App import frb_tags
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -1609,6 +1610,10 @@ class IngestPathView(APIView):
             except Exception as e:
                 print(f"DEBUG: Error ingesting PATH results: {e}")
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Add new tags?
+            if 'new_tags' in data:
+                frb_tags.add_frb_tags(itransient, request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 

@@ -1,5 +1,23 @@
 """ Code related to FRB tags """
 
+from YSE_App import frb_status
+from YSE_App import frb_utils
+from YSE_App.models import FRBTag
+
+def add_frb_tags(transient, user):
+
+    # Add new ones
+    for tag_name in transient['tags'].split(','):
+        tag = frb_utils.add_or_grab_obj(
+            FRBTag, dict(name=tag_name), {}, user)
+        transient.frb_tags.add(tag)
+
+    # Set status
+    frb_status.set_status(transient)
+
+    # Save me!
+    transient.save()
+
 def values_from_tags(frb, key:str, debug:bool=False):
     """ Grab a list of values for a given key from the tags
       of a given FRB

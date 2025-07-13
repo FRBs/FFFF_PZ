@@ -23,3 +23,4 @@ class FRBTag(Tag):
     
     def __str__(self):
         return "Name: %s" % self.name
+
