@@ -76,18 +76,20 @@ def set_status(frb):
     # Are top 2 P(O|x) > min(P_Ox_min)
     POx_satisfied_two = False  # Sum of top 2 exceed min_POx
     POx_satisfied_primary = False # Primary exceeds min_POx
+    POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
+    if len(POx_mins) > 0: 
+        min_POx_mins = np.min(POx_mins)
     PATH_run = False
     if frb.host is not None:
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
+        PATH_run = True
         if len(POx_mins) > 0: 
-            PATH_run = True
             # Sum of two?
-            if frb.sum_top_two_PATH > np.min(POx_mins):
+            if frb.sum_top_two_PATH > min_POx_mins:
                 POx_satisfied_two = True
             # Primary?
             POx_values, galaxies, _ = frb.get_Path_values()
             primary_POx = np.max(POx_values)
-            if primary_POx > np.min(POx_mins):
+            if primary_POx > min_POx_mins:
                 POx_satisfied_primary = True
 
 
@@ -106,10 +108,9 @@ def set_status(frb):
     # #########################################################
     # Ambiguous host
     # #########################################################
-
     if frb.host is not None:
         # 
-        if PATH_run and not POx_satisfied_two:
+        if PATH_run and not POx_satisfied_two and min_POx_mins < 1.:
             frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
             frb.save()
             return
@@ -254,7 +255,6 @@ def set_status(frb):
             mode__in=['longslit','mask']).exists()): 
 
         # Require top 2 P(O|x) > min(P_Ox_min)
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
         print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
         if (len(POx_mins) == 0) or (
             frb.sum_top_two_PATH > np.min(POx_mins)):
