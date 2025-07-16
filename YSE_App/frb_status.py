@@ -30,6 +30,7 @@ all_status = [\
     'GoodSpectrum', # Observed with spectroscopy successfully
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two must have a spectrum
+    'BrightStar', # Localization is too close to a very bright star
     'TooDusty', # Sightline exceeds E(B-V) threshold
     'TooFaint', # Host is too faint for spectroscopy
         # r-magnitude (or equivalent; we use the PATH band) of the top host candidate
@@ -92,6 +93,15 @@ def set_status(frb):
             if primary_POx > min_POx_mins:
                 POx_satisfied_primary = True
 
+
+    # #########################################################
+    # #########################################################
+    # Bright star?
+    # #########################################################
+    if frb.bright_star is not None and frb.bright_star:
+        frb.status = TransientStatus.objects.get(name='BrightStar')
+        frb.save()
+        return
 
     # #########################################################
     # #########################################################

@@ -65,6 +65,8 @@ class FRBTransient(BaseModel):
     localization_file = models.CharField(max_length=64, null=True, blank=True)
     # Event ID
     event_id = models.IntegerField(null=True, blank=True, unique=True)
+    # Bright star nearby?
+    bright_star = models.BooleanField(default=False, blank=True)
 
     # Repeater?
     repeater = models.BooleanField(default=False, blank=True)
