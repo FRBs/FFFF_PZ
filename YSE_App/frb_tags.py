@@ -127,8 +127,7 @@ def chk_all_criteria(frb):
 
             # Ran deep PATH?
             rfilter = pri_gal.FilterMagString()
-            print('rfilter:', rfilter)
-            print('prigal:', pri_gal)
+            log_message += rfilter
             if 'Blanco' in rfilter or 'DECam' in rfilter or 'Pan-STARRS' in rfilter: # Public
                 criteria['ran_deep_PATH'].append(False)
             else:
@@ -198,4 +197,4 @@ def chk_all_criteria(frb):
         criteria[key] = np.array(criteria[key])
 
     # Return
-    return criteria
+    return criteria, log_message

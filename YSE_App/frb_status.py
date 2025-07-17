@@ -69,8 +69,9 @@ def set_status(frb):
     from YSE_App.models import FRBFollowUpObservation
     from YSE_App.models import FRBFollowUpRequest
 
-    # Check Criteria 
-    criteria = frb_tags.chk_all_criteria(frb)
+    # Check Criteria
+    criteria, msg = frb_tags.chk_all_criteria(frb)
+    log_message += msg
     PATH_run = False if frb.host is None else True
 
     # Is the top candidate too faint?

@@ -2103,13 +2103,16 @@ def get_criteria(request):
     user = auth.authenticate(username=username, password=password)
 
     # Grab it
+    msg = ''
     try:
         obj = FRBTransient.objects.get(name=data['name'])
     except ObjectDoesNotExist:
         msg = "FRB does not exist!"
         return JsonResponse({"message":f"m{msg}"}, status=202)
     else: # Do it
-        criteria = frb_tags.chk_all_criteria(obj)
+        criteria, msg = frb_tags.chk_all_criteria(obj)
         df = pandas.DataFrame(criteria)
 
-    return JsonResponse(df.to_dict(), status=201)
+    rdict = dict(df=df.to_dict(), message=msg)
+
+    return JsonResponse(rdict, status=201)
