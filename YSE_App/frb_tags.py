@@ -15,7 +15,7 @@ def add_frb_tags(transient, user):
         transient.frb_tags.add(tag)
 
     # Set status
-    frb_status.set_status(transient)
+    #frb_status.set_status(transient)
 
     # Save me!
     transient.save()
