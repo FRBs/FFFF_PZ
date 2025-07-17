@@ -74,16 +74,26 @@ def set_status(frb):
 
     # Run in reverse order of completion
 
-    # Are top 2 P(O|x) > min(P_Ox_min)
+    # P(O|x)
+    PATH_run = False
+    if frb.host is not None:
+        pass_POx, N_POx = frb_tags.chk_tags_pox(frb)
+        PATH_run = True
+    else:
+        pass_POx = np.array([False])
+        N_POx = np.array([0])
+    '''
     POx_satisfied_two = False  # Sum of top 2 exceed min_POx
     POx_satisfied_primary = False # Primary exceeds min_POx
+    # Parse the tags
     POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-    if len(POx_mins) > 0: 
+    use_top_twos = frb_tags.values_from_tags(frb, 'use_top_two')
+    if len(POx_mins) > 0:
         min_POx_mins = np.min(POx_mins)
     PATH_run = False
     if frb.host is not None:
         PATH_run = True
-        if len(POx_mins) > 0: 
+        if len(POx_mins) > 0:
             # Sum of two?
             if frb.sum_top_two_PATH > min_POx_mins:
                 POx_satisfied_two = True
@@ -92,6 +102,7 @@ def set_status(frb):
             primary_POx = np.max(POx_values)
             if primary_POx > min_POx_mins:
                 POx_satisfied_primary = True
+    '''
 
 
     # #########################################################
@@ -120,7 +131,7 @@ def set_status(frb):
     # #########################################################
     if frb.host is not None:
         # 
-        if PATH_run and not POx_satisfied_two and min_POx_mins < 1.:
+        if PATH_run and not POx_satisfied_two: 
             frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
             frb.save()
             return
@@ -129,7 +140,6 @@ def set_status(frb):
     # #########################################################
     # Unseen host
     # #########################################################
-
     # In PATH table?
     path_qs = Path.objects.filter(transient=frb)
     if len(path_qs) > 0 and frb.P_Ux is not None:

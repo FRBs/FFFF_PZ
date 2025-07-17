@@ -1,5 +1,7 @@
 """ Code related to FRB tags """
 
+import numpy as np
+
 from YSE_App import frb_status
 from YSE_App import frb_utils
 from YSE_App.models import FRBTag
@@ -49,3 +51,39 @@ def values_from_tags(frb, key:str, debug:bool=False):
             values.append(getattr(sample,key))
 
     return values
+
+def chk_tags_pox(frb):
+
+    from YSE_App.models import FRBSampleCriteria
+
+    pass_POx, N_POx = [], []
+
+    # Tag names
+    tag_names = [frb_tag.name for frb_tag in frb.frb_tags.all()]
+
+    # Grab the Sample object
+    for tag_name in tag_names:
+        # Grab the criteria
+        sample = frb_utils.add_or_grab_obj(
+            FRBSampleCriteria, dict(name=tag_name), {})
+        # Two?
+        if sample.use_top_two:
+            N_POx.append(2)
+            if frb.sum_top_two_PATH > sample.min_POx:
+                pass_POx.append(True)
+            else:
+                pass_POx.append(False)
+        else:
+            N_POx.append(1)
+            POx_values, galaxies, _ = frb.get_Path_values()
+            primary_POx = np.max(POx_values)
+            if primary_POx > sample.min_POx:
+                pass_POx.append(True)
+            else:  
+                pass_POx.append(False)
+
+    # Return
+    return np.array(pass_POx), np.array(N_POx)
+            
+
+

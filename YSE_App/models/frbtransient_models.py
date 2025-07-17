@@ -96,9 +96,6 @@ class FRBTransient(BaseModel):
     # Galactic DM
     DM_ISM = models.FloatField(null=True, blank=True)
 
-    # Near bright star?
-    bright_star = models.BooleanField(default=False, blank=True)
-
     # Redshift, derived from host
     redshift = models.FloatField(null=True, blank=True)
     redshift_err = models.FloatField(null=True, blank=True)

@@ -21,6 +21,7 @@ class FRBSampleCriteria(BaseModel):
     # Required
     name = models.CharField(max_length=64, unique=True)
     version = models.CharField(max_length=64)
+    desc = models.CharField(max_length=256) # Description of the sample criteria
     frb_survey = models.ForeignKey(FRBSurvey, on_delete=models.CASCADE)
 
     # Weighting factor when selecting from many targets
@@ -28,6 +29,9 @@ class FRBSampleCriteria(BaseModel):
 
     # min P(O|x) for selection
     min_POx = models.FloatField()
+
+    # Consider top two when assessing P(O|x) criterion?
+    use_top_two = models.BooleanField()
 
     # max E(B-V) for selection
     max_EBV = models.FloatField()
@@ -48,6 +52,9 @@ class FRBSampleCriteria(BaseModel):
 
     # min DM
     min_DM = models.FloatField(null=True, blank=True)
+
+    # Localization
+    max_a = models.FloatField(null=True, blank=True)
 
 
     def __str__(self):
