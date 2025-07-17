@@ -2112,4 +2112,4 @@ def get_criteria(request):
         criteria = frb_tags.chk_all_criteria(obj)
         df = pandas.DataFrame(criteria)
 
-    return JsonResponse(df.to_dict(), status=200)
+    return JsonResponse(df.to_dict(), status=201)
