@@ -2078,3 +2078,38 @@ def get_frb_path_table(request):
         df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
 
     return JsonResponse(df.to_dict(), status=200)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def get_criteria(request):
+    """ Return a table of the PATH info for a given FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        path_values, galaxies, path_objs = obj.get_Path_values()
+        df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
+
+    return JsonResponse(df.to_dict(), status=200)

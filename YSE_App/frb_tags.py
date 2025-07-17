@@ -75,6 +75,8 @@ def chk_all_criteria(frb):
         # Bright star?
         if sample.apply_bright_star and frb.bright_star is not None and frb.bright_star:
             criteria['bright_star'].append(True)
+        else:
+            criteria['bright_star'].append(False)
 
         # Dust
         if frb.mw_ebv < sample.max_EBV:
