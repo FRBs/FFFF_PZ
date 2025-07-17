@@ -11,6 +11,8 @@ from IPython import embed
 # Create the FRB ones
 all_status = [\
     'Unassigned', # Does not meet the criteria for FFFF FollowUp
+    'BrightStar', # Localization is too close to a very bright star
+    'TooDusty', # Sightline exceeds E(B-V) threshold
     'RunPublicPATH', # Needs to be run through PATH with public data
         # P_Ux is None
         # At least one frb_tag is in the list of run_public_path entries below
@@ -32,26 +34,21 @@ all_status = [\
     'GoodSpectrum', # Observed with spectroscopy successfully
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two must have a spectrum
-    'BrightStar', # Localization is too close to a very bright star
-    'TooDusty', # Sightline exceeds E(B-V) threshold
     'TooFaint', # Host is too faint for spectroscopy
         # r-magnitude (or equivalent; we use the PATH band) of the top host candidate
         #   is fainter than the maximum(mr_max) for the sample/surveys
     'AmbiguousHost',  # Host is considered too ambiguous for further follow-up
-        # At least one of the frb_tags has a min_POx value
-        #  and the sum of the top two P(O|x) is less than the minimum of those
+        #  For primary-only, it isn't satisfied and for top two, the top two P(O|x) are not satisfied
     'UnseenHost',  # Even with deep imaging, no compelling host was found
         # P(U|x) is set
-        # Deep imaging must exist.  The list of telescope+intrument is below
+        # deep PATH was run
         # P(U|x) > P_Ux_max
+        # Note that this takes precedence over 'AmbiguousHost' 
     'Redshift', # Redshift measured
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
         # Else, take primary
 ]
-
-# List of telescope+instruments that are considered Deep
-deep_telinstr = []
 
 # Good redshift sources
 good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini', 'MMT']
@@ -74,49 +71,12 @@ def set_status(frb):
     from YSE_App.models import FRBFollowUpObservation
     from YSE_App.models import FRBFollowUpRequest
 
-    # Run in reverse order of completion
+    # Check Criteria 
+    criteria = frb_tags.chk_all_criteria(frb)
+    PATH_run = False if frb.host is None else True
 
-    # P(O|x)
-    POx_satisfied_two = False  # Sum of top 2 exceed min_POx
-    POx_satisfied_primary = False # Primary exceeds min_POx
-    # Checks on the top candidate (if it exists)
-    if frb.host is not None:
-        pass_POx, N_POx = frb_tags.chk_tags_pox(frb)
-        PATH_run = True
-    else:
-        pass_POx = np.array([False])
-        N_POx = np.array([0])
-    '''
-    POx_satisfied_two = False  # Sum of top 2 exceed min_POx
-    POx_satisfied_primary = False # Primary exceeds min_POx
-    # Parse the tags
-    POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-    use_top_twos = frb_tags.values_from_tags(frb, 'use_top_two')
-    if len(POx_mins) > 0:
-        min_POx_mins = np.min(POx_mins)
-    PATH_run = False
-    if frb.host is not None:
-        PATH_run = True
-        if len(POx_mins) > 0:
-=======
-        POx_values, galaxies, _ = frb.get_Path_values()
-        argsrt = np.argsort(POx_values)
-        pri_gal = galaxies[argsrt[-1]]  # Primary galaxy
-
-        # Are top 2 P(O|x) > min(P_Ox_min)
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        if len(POx_mins) > 0:
-            PATH_run = True
->>>>>>> origin/trigger_imaging
-            # Sum of two?
-            if frb.sum_top_two_PATH > min_POx_mins:
-                POx_satisfied_two = True
-            # Primary?
-            primary_POx = np.max(POx_values)
-            if primary_POx > min_POx_mins:
-                POx_satisfied_primary = True
-    '''
-
+    # Is the top candidate too faint?
+    r_too_faint = False  
     if frb.host is not None:
         POx_values, galaxies, _ = frb.get_Path_values()
         argsrt = np.argsort(POx_values)
@@ -130,12 +90,13 @@ def set_status(frb):
             if pri_gal.mag > 21.0:
                 r_too_faint = True
 
+    # Run in reverse order of completion
 
     # #########################################################
     # #########################################################
     # Bright star?
     # #########################################################
-    if frb.bright_star is not None and frb.bright_star:
+    if np.all(criteria['bright_star']):
         frb.status = TransientStatus.objects.get(name='BrightStar')
         frb.save()
         return
@@ -144,55 +105,76 @@ def set_status(frb):
     # #########################################################
     # Too Dusty??
     # #########################################################
-    if frb.mw_ebv is not None:
-        ebv_maxs = frb_tags.values_from_tags(frb, 'max_EBV')
-        if len(ebv_maxs) > 0:
-            if frb.mw_ebv > np.min(ebv_maxs):
-                frb.status = TransientStatus.objects.get(name='TooDusty')
-                frb.save()
-                return
+    if np.all(np.invert(criteria['bright_star']) & np.invert(criteria['EBV'])):
+        frb.status = TransientStatus.objects.get(name='TooDusty')
+        frb.save()
+        return
 
     # #########################################################
-    # Ambiguous host
+    # Run Public PATH
     # #########################################################
-    if frb.host is not None:
-        # 
-        if PATH_run and not POx_satisfied_two: 
-            frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
+    if np.any(np.invert(criteria['bright_star']) & criteria['EBV'] & \
+        criteria['run_public_PATH']):
+        if not PATH_run:
+            frb.status = TransientStatus.objects.get(name='RunPublicPATH')
             frb.save()
             return
+    else: # We have chosen not to proceed with this FRB; all items that follow require PATH
+        frb.status = TransientStatus.objects.get(name='Unassigned')
+        frb.save()
+        return
 
+    # Grab the sample that satisfy the criteria so far
+    good = np.invert(criteria['bright_star']) & criteria['EBV'] & \
+        criteria['run_public_PATH']
+    good_idx = np.where(good)[0]
+
+    # #########################################################
+    # Need Image
+    # #########################################################
+    if (np.any(criteria['PUx'][good_idx]) or r_too_faint) and (
+        not FRBFollowUpRequest.objects.filter(
+            transient=frb,
+            mode='image').exists()) and (
+        not FRBFollowUpObservation.objects.filter(
+            transient=frb,
+            success=True,
+            mode='image').exists()):
+
+        frb.status = TransientStatus.objects.get(name='NeedImage')
+        frb.save()
+        return
+
+    # #########################################################
+    # Run deep PATH
+    # #########################################################
+    if FRBFollowUpObservation.objects.filter(
+            transient=frb,
+            success=True,
+            mode='image').exists() and (not criteria['ran_deep_PATH'][0]):
+        frb.status = TransientStatus.objects.get(name='RunDeepPATH')
+        frb.save()
+        return
 
     # #########################################################
     # Unseen host
     # #########################################################
     # In PATH table?
-    path_qs = Path.objects.filter(transient=frb)
-    if len(path_qs) > 0 and frb.P_Ux is not None:
-        # Check on source of photometry (instrument) for all the galaxies
-        all_telinstr = []
-        for path in path_qs:
-            # Grab a dict of the photometry
-            phot_dict = path.galaxy.phot_dict
-            all_telinstr += list(phot_dict.keys())
-
-        # Too shallow?
-        too_shallow = True
-        for uni_telins in np.unique(all_telinstr):
-            if uni_telins in deep_telinstr:
-                too_shallow = False
-
-        # P(U|x) too large?
-        if not too_shallow:
-            PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
-            if len(PUx_maxs) > 0:
-                # Use the max
-                PUx_max = np.max(PUx_maxs)
-                if frb.P_Ux > PUx_max:
-                    frb.status = TransientStatus.objects.get(
+    if np.any(criteria['PUx'][good_idx] & criteria['ran_deep_PATH'][good_idx]):
+        frb.status = TransientStatus.objects.get(
                         name='UnseenHost')
-                    frb.save()
-                    return
+        frb.save()
+        return
+
+    # #########################################################
+    # Ambiguous host
+    # #########################################################
+    if np.all(np.invert(criteria['POx'][good_idx])):
+        frb.status = TransientStatus.objects.get(name='AmbiguousHost')
+        frb.save()
+        return
+
+
 
     # #########################################################
     # Redshift?
@@ -287,27 +269,6 @@ def set_status(frb):
         frb.save()
         return
 
-    # #########################################################
-    # Need Image
-    # #########################################################
-
-    if frb.P_Ux is not None and frb.host is not None and (
-        not FRBFollowUpRequest.objects.filter(
-            transient=frb,
-            mode='image').exists()) and (
-        not FRBFollowUpObservation.objects.filter(
-            transient=frb,
-            success=True,
-            mode='image').exists()):
-
-        # Require top P_Ux > min(P_Ux_max)
-        #   or r_too_faint
-        PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
-        if (len(PUx_maxs) == 0) or (
-            frb.P_Ux > np.min(PUx_maxs)) or r_too_faint:
-            frb.status = TransientStatus.objects.get(name='NeedImage')
-            frb.save()
-            return
 
     # #########################################################
     # Need Spectrum
@@ -330,19 +291,6 @@ def set_status(frb):
             frb.status = TransientStatus.objects.get(name='NeedSpectrum') 
             frb.save()
             return
-
- 
-    # #########################################################
-    # Run Public PATH
-    # #########################################################
-
-    if frb.P_Ux is None:
-        path_flags = frb_tags.values_from_tags(frb, 'run_public_path')
-        if np.any(path_flags):
-            frb.status = TransientStatus.objects.get(name='RunPublicPATH')
-            frb.save()
-            return
-
 
     # #########################################################
     # Unassigned

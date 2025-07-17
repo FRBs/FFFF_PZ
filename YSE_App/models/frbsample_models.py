@@ -6,7 +6,6 @@ import pandas
 
 from YSE_App.models.base import BaseModel
 from YSE_App.models.frbtransient_models import *
-from YSE_App import frb_targeting
 
 
 class FRBSampleCriteria(BaseModel):
@@ -41,6 +40,9 @@ class FRBSampleCriteria(BaseModel):
 
     # Run Public PATH as the default?
     run_public_path = models.BooleanField()
+
+    # Run Public PATH as the default?
+    apply_bright_star = models.BooleanField(default=True)
     
     # #########################################################
     # Optional
@@ -50,8 +52,11 @@ class FRBSampleCriteria(BaseModel):
     # max P(U|x) for selection
     max_PUx = models.FloatField(null=True, blank=True)
 
-    # min DM
+    # min DM; for highDM sample
     min_DM = models.FloatField(null=True, blank=True)
+
+    # max DM; for low-z sample
+    max_DM = models.FloatField(null=True, blank=True)
 
     # Localization
     max_a = models.FloatField(null=True, blank=True)
