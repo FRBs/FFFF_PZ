@@ -5,11 +5,11 @@ import numpy as np
 from YSE_App import frb_status
 from YSE_App import frb_utils
 
-def add_frb_tags(frb, tdict, user):
+def add_frb_tags(frb, tags:str, user):
     from YSE_App.models import FRBTag
 
     # Add new ones
-    for tag_name in tdict.tags.split(','):
+    for tag_name in tags.split(','):
         tag = frb_utils.add_or_grab_obj(
             FRBTag, dict(name=tag_name), {}, user)
         frb.frb_tags.add(tag)

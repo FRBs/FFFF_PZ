@@ -1612,8 +1612,8 @@ class IngestPathView(APIView):
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Add new tags?
-            if 'new_tags' in data:
-                frb_tags.add_frb_tags(itransient, request.user)
+            if 'new_tags' in data.keys():
+                frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 
