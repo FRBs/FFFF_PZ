@@ -126,7 +126,7 @@ def chk_all_criteria(frb):
                 criteria['PUx'].append(False)
 
             # Ran deep PATH?
-            rfilter = pri_gal.FilterMagString()
+            rfilter = pri_gal.FilterMagString()[0]
             log_message += rfilter
             if 'Blanco' in rfilter or 'DECam' in rfilter or 'Pan-STARRS' in rfilter: # Public
                 criteria['ran_deep_PATH'].append(False)
