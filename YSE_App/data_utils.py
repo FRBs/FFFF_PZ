@@ -1613,6 +1613,7 @@ class IngestPathView(APIView):
 
             # Add new tags?
             if 'new_tags' in data.keys():
+                print("Adding new tags!!")
                 frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
