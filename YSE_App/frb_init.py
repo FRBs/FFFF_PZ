@@ -131,7 +131,7 @@ def add_df_to_db(df_frbs:pandas.DataFrame, user,
 
         # Tags
         if hasattr(transient, 'tags'):
-            frb_tags.add_frb_tags(dbtransient, user)
+            frb_tags.add_frb_tags(dbtransient, transient, user)
 
         # Add to list
         dbtransients.append(dbtransient)

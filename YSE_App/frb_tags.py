@@ -5,21 +5,21 @@ import numpy as np
 from YSE_App import frb_status
 from YSE_App import frb_utils
 
-def add_frb_tags(transient, user):
+def add_frb_tags(frb, tdict, user):
     from YSE_App.models import FRBTag
 
     # Add new ones
-    for tag_name in transient['tags'].split(','):
+    for tag_name in tdict.tags.split(','):
         tag = frb_utils.add_or_grab_obj(
             FRBTag, dict(name=tag_name), {}, user)
-        transient.frb_tags.add(tag)
+        frb.frb_tags.add(tag)
 
     # Set status
     # TODO - turn back on!!
     #frb_status.set_status(transient)
 
     # Save me!
-    transient.save()
+    frb.save()
 
 def values_from_tags(frb, key:str, debug:bool=False):
     """ Grab a list of values for a given key from the tags
