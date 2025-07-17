@@ -2109,7 +2109,7 @@ def get_criteria(request):
         msg = "FRB does not exist!"
         return JsonResponse({"message":f"m{msg}"}, status=202)
     else: # Do it
-        criteria = frb_tags.chk_all_criteria(frb)
+        criteria = frb_tags.chk_all_criteria(obj)
         df = pandas.DataFrame(criteria)
 
     return JsonResponse(df.to_dict(), status=200)
