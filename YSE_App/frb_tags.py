@@ -4,9 +4,9 @@ import numpy as np
 
 from YSE_App import frb_status
 from YSE_App import frb_utils
-from YSE_App.models import FRBTag
 
 def add_frb_tags(transient, user):
+    from YSE_App.models import FRBTag
 
     # Add new ones
     for tag_name in transient['tags'].split(','):
