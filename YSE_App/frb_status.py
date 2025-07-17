@@ -50,8 +50,6 @@ all_status = [\
         # Else, take primary
 ]
 
-# Good redshift sources
-good_z_sources = ['FFFF', 'Keck', 'Lick', 'Gemini', 'MMT']
 
 
 # Add all of the chime
@@ -97,7 +95,6 @@ def set_status(frb):
     # Bright star?
     # #########################################################
     if np.all(criteria['bright_star']):
-        print('Bright star: ', criteria['bright_star'])
         frb.status = TransientStatus.objects.get(name='BrightStar')
         frb.save()
         return
@@ -176,11 +173,25 @@ def set_status(frb):
         return
 
 
-
     # #########################################################
     # Redshift?
     # #########################################################
-    if frb.host is not None and frb.host.redshift is not None and POx_satisfied_two:
+    if frb.host is not None and frb.host.redshift is not None and \
+        np.any(criteria['POx'][good_idx]):  # This last query is superfluous but it is here for clarity 
+
+        if np.any(criteria['z_done'][good_idx] & criteria['z_consistent'][good_idx]):
+            # We have a redshift
+            frb.status = TransientStatus.objects.get(name='Redshift')
+            frb.save()
+            return
+
+        if np.any(criteria['z_done'][good_idx] & np.invert(criteria['z_consistent'][good_idx])):
+            # Amibiguous host
+            frb.status = TransientStatus.objects.get(name='AmbiguousHost')
+            frb.save()
+            return
+
+        '''
         # Grab info
         path_values, galaxies, _ = frb.get_Path_values()
         argsrt = np.argsort(path_values)
@@ -232,6 +243,7 @@ def set_status(frb):
                     frb.status = TransientStatus.objects.get(name='Redshift')
                     frb.save()
                     return log_message
+        '''
 
     # #########################################################
     # Too Faint?
