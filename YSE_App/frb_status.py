@@ -97,6 +97,7 @@ def set_status(frb):
     # Bright star?
     # #########################################################
     if np.all(criteria['bright_star']):
+        print('Bright star: ', criteria['bright_star'])
         frb.status = TransientStatus.objects.get(name='BrightStar')
         frb.save()
         return

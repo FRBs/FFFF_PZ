@@ -15,8 +15,7 @@ def add_frb_tags(frb, tdict, user):
         frb.frb_tags.add(tag)
 
     # Set status
-    # TODO - turn back on!!
-    #frb_status.set_status(transient)
+    frb_status.set_status(frb)
 
     # Save me!
     frb.save()

@@ -1686,7 +1686,7 @@ def frb_dashboard(request):
          'Unassigned FRBs',
          ],
         [
-         ['Redshift', 'TooFaint', 'AmbiguousHost', 'UnseenHost', 'TooDusty'],
+         ['Redshift', 'TooFaint', 'AmbiguousHost', 'UnseenHost', 'TooDusty','BrightStar'],
          ['RunPublicPATH', 'RunDeepPATH'],
          ['NeedImage','NeedSpectrum'],
          ['ImagePending', 'SpectrumPending'],
