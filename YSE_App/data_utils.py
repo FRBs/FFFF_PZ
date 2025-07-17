@@ -2109,7 +2109,7 @@ def get_criteria(request):
         msg = "FRB does not exist!"
         return JsonResponse({"message":f"m{msg}"}, status=202)
     else: # Do it
-        path_values, galaxies, path_objs = obj.get_Path_values()
-        df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
+        criteria = frb_tags.chk_all_criteria(frb)
+        df = pandas.DataFrame(criteria)
 
     return JsonResponse(df.to_dict(), status=200)
