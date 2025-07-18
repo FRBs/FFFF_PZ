@@ -2001,7 +2001,7 @@ def frb_update_status(request):
         except ObjectDoesNotExist:
             return JsonResponse({"message": f'FRB {name} not in DB'}, status=401)
         log = frb_status.set_status(frb)
-        log_message += f"{name}: {log}\n"
+        log_message += f"{name}: {log}, status={frb.status.name}\n"
 
     # Return
     return JsonResponse({"message": f"All good! {log_message}"}, status=200)
