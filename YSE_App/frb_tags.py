@@ -205,13 +205,16 @@ def chk_all_criteria(frb):
                         criteria['z_consistent'].append(True)
                 else:
                     criteria['z_done'].append(False)
+                    criteria['z_consistent'].append(False)
 
         else:
             criteria['POx'].append(False)
+            criteria['POx_primary'].append(False)
             criteria['N_POx'].append(0)
             criteria['PUx'].append(False)
             criteria['ran_deep_PATH'].append(False)
             criteria['z_done'].append(False)
+            criteria['z_consistent'].append(False)
 
 
     # Convert to arrays
