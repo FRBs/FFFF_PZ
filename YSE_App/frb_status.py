@@ -131,6 +131,16 @@ def set_status(frb):
     good_idx = np.where(good)[0]
 
     # #########################################################
+    # Pending Image
+    # #########################################################
+    if FRBFollowUpRequest.objects.filter(
+            transient=frb,
+            mode__in=['imaging']).exists():
+        frb.status = TransientStatus.objects.get(name='ImagePending')
+        frb.save()
+        return
+
+    # #########################################################
     # Need Image
     # #########################################################
     if (np.any(criteria['PUx'][good_idx]) or r_too_faint) and (
