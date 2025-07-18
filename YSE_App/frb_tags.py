@@ -139,7 +139,7 @@ def chk_all_criteria(frb):
                     criteria['POx'].append(False)
             else:
                 criteria['N_POx'].append(1)
-                criteria['POx'] = criteria['POx_primary'][-1]
+                criteria['POx'].append(criteria['POx_primary'][-1])
 
             # P(U|x)
             if sample.max_PUx is not None and frb.P_Ux > sample.max_PUx:
