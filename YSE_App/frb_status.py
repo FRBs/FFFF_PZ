@@ -123,7 +123,9 @@ def set_status(frb):
         frb.save()
         return
 
+    # #########################################################
     # Grab the sample that satisfy the criteria so far
+    # #########################################################
     good = np.invert(criteria['bright_star']) & criteria['EBV'] & \
         criteria['run_public_PATH']
     good_idx = np.where(good)[0]
@@ -250,7 +252,9 @@ def set_status(frb):
     # Too Faint?
     # #########################################################
     if frb.host is not None:
-        mrs = frb_tags.values_from_tags(frb, 'max_mr')
+        good_POx = criteria['POx'][good_idx]
+        good_tags = criteria['sample'][good_idx][good_POx]
+        mrs = frb_tags.values_from_tags(frb, 'max_mr', tag_names=good_tags)
 
         # Find mr_max (if it exists)
         if len(mrs) > 0:
@@ -275,7 +279,6 @@ def set_status(frb):
     # #########################################################
     # Pending Spectrum
     # #########################################################
-
     if FRBFollowUpRequest.objects.filter(
             transient=frb,
             mode__in=['longslit','mask']).exists():
@@ -287,31 +290,28 @@ def set_status(frb):
     # #########################################################
     # Need Spectrum
     # #########################################################
-
-    if frb.host is not None and (
-        not FRBFollowUpRequest.objects.filter(
-            transient=frb,
-            mode__in=['longslit','mask']).exists()) and (
-        not FRBFollowUpObservation.objects.filter(
-            transient=frb,
-            success=True,
-            mode__in=['longslit','mask']).exists()): 
+    if frb.host is not None and np.any(criteria['POx'][good_idx]):
+        #not FRBFollowUpRequest.objects.filter(
+        #    transient=frb,
+        #    mode__in=['longslit','mask']).exists()) and (
+        #not FRBFollowUpObservation.objects.filter(
+        #    transient=frb,
+        #    success=True,
+        #    mode__in=['longslit','mask']).exists()): 
 
         # Require top 2 P(O|x) > min(P_Ox_min)
-        print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
-        POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        if (len(POx_mins) == 0) or (
-            frb.sum_top_two_PATH > np.min(POx_mins)):
-            frb.status = TransientStatus.objects.get(name='NeedSpectrum') 
-            frb.save()
-            return
+        #print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
+        #POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
+        #if (len(POx_mins) == 0) or (
+        #    frb.sum_top_two_PATH > np.min(POx_mins)):
+        frb.status = TransientStatus.objects.get(name='NeedSpectrum') 
+        frb.save()
+        return
 
     # #########################################################
     # Unassigned
     # #########################################################
-
     # If you get to here, you are unassigned
-
     frb.status = TransientStatus.objects.get(name='Unassigned')
     frb.save()
     return
