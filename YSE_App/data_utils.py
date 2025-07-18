@@ -1610,7 +1610,7 @@ class IngestPathView(APIView):
                 )
                 print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
                 # Add new tags?
-                if 'new_tags' in data.keys():
+                if data['new_tags'] is not None:
                     frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
             except Exception as e:
                 print(f"DEBUG: Error ingesting PATH results: {e}")
