@@ -181,7 +181,7 @@ class FRBFollowUpRequest(BaseModel):
     # Required
     resource = models.ForeignKey(FRBFollowUpResource, on_delete=models.CASCADE)
     transient = models.ForeignKey(FRBTransient, on_delete=models.CASCADE)
-    mode = models.CharField(max_length=64) # image, longslit, mask
+    mode = models.CharField(max_length=64) # imaging, longslit, mask
 
     def __str__(self):
         return f'Resource: {self.resource.name} FRB: {self.transient.name} mode: {self.mode}'
