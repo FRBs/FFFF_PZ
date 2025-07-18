@@ -2154,7 +2154,7 @@ def chk_frb(request):
         criteria, msg = frb_tags.chk_all_criteria(obj)
         df = pandas.DataFrame(criteria)
         # Weight
-        weight = frb_targeting(frb, 'longslit')
+        weight = frb_targeting.assign_prob(obj, 'longslit')
 
     rdict = dict(criteria=df.to_dict(), 
                  status=obj.status.name,
