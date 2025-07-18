@@ -135,7 +135,7 @@ def set_status(frb):
     # #########################################################
     if FRBFollowUpRequest.objects.filter(
             transient=frb,
-            mode__in=['imaging']).exists():
+            mode='imaging').exists():
         frb.status = TransientStatus.objects.get(name='ImagePending')
         frb.save()
         return
