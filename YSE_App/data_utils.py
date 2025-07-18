@@ -1563,7 +1563,8 @@ class IngestPathView(APIView):
                 print("========== DEBUG END ==========\n")
 
             # Now request.data is automatically parsed JSON
-            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 
+                            'P_Ux', 'bright_star', 'new_tags']
             data = {key: request.data.get(key) for key in allowed_keys}
 
             # Validate 'transient_name' separately
@@ -1608,13 +1609,12 @@ class IngestPathView(APIView):
                     bright_star=data['bright_star']
                 )
                 print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
+                # Add new tags?
+                if 'new_tags' in data.keys():
+                    frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
             except Exception as e:
                 print(f"DEBUG: Error ingesting PATH results: {e}")
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Add new tags?
-            if 'new_tags' in data.keys():
-                frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 
