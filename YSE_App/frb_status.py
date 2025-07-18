@@ -146,11 +146,11 @@ def set_status(frb):
     if (np.any(criteria['PUx'][good_idx]) or r_too_faint) and (
         not FRBFollowUpRequest.objects.filter(
             transient=frb,
-            mode='image').exists()) and (
+            mode='imaging').exists()) and (
         not FRBFollowUpObservation.objects.filter(
             transient=frb,
             success=True,
-            mode='image').exists()):
+            mode='imaging').exists()):
 
         frb.status = TransientStatus.objects.get(name='NeedImage')
         frb.save()
@@ -162,7 +162,7 @@ def set_status(frb):
     if FRBFollowUpObservation.objects.filter(
             transient=frb,
             success=True,
-            mode='image').exists() and (not criteria['ran_deep_PATH'][0]):
+            mode='imaging').exists() and (not criteria['ran_deep_PATH'][0]):
         frb.status = TransientStatus.objects.get(name='RunDeepPATH')
         frb.save()
         return
