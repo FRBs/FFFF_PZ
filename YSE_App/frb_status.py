@@ -4,7 +4,7 @@ import numpy as np
 
 
 from YSE_App import frb_tags
-from YSE_App.chime import tags as chime_tags
+#from YSE_App.chime import tags as chime_tags
 
 from IPython import embed
 
@@ -304,7 +304,7 @@ def set_status(frb):
         #POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
         #if (len(POx_mins) == 0) or (
         #    frb.sum_top_two_PATH > np.min(POx_mins)):
-        frb.status = TransientStatus.objects.get(name='NeedSpectrum') 
+        frb.status = TransientStatus.objects.get(name='NeedSpectrum')
         frb.save()
         return
 

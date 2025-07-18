@@ -9,7 +9,8 @@ from astropy.time import Time, TimeDelta
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy import units
 
-from YSE_App.chime import tags as chime_tags
+#from YSE_App.chime import tags as chime_tags
+from YSE_App import frb_tags
 
 from IPython import embed
 
@@ -239,7 +240,7 @@ def grab_targets_by_mode(frb_fu, frbs):
     # Return
     return targets_by_mode
 
-def select_with_priority(frb_fu, frbs_by_mode:dict): 
+def select_with_priority(frb_fu, frbs_by_mode:dict):
     """ Select targets from the total set by priority
 
     Args:
@@ -296,21 +297,54 @@ def select_with_priority(frb_fu, frbs_by_mode:dict):
     return selected_frbs
 
         
-def assign_probs(frbs):
+def assign_probs(frbs, mode:str):
+    """
+    Assigns probabilities to a list of Fast Radio Bursts (FRBs) based on their associated tags.
 
-    # Collect all possible samples
-    all_samples = chime_tags.all_samples
+    This function iterates through all FRBs and calculates the maximum probability 
+    associated with their tags by comparing them against a predefined set of samples.
 
+    Args:
+        frbs (QuerySet): A QuerySet containing FRB objects. Each FRB object is expected 
+                         to have a `frb_tags` attribute, which is a QuerySet of tags 
+                         associated with the FRB.
+        mode (str): The mode of operation, which can be 'imaging', 'longslit', or 'mask'.
+
+    Returns:
+        list: A list of probabilities, where each probability corresponds to an FRB 
+              in the input QuerySet. If no matching tags are found for an FRB, a 
+              default probability of 0.1 is assigned.
+    """
     probs = []
     for frb in frbs.all():
-        max_prob = 0.1 # Default
-        tag_names = [itag.name for itag in frb.frb_tags.all()]
-
-        # Query them all
-        for sample in all_samples:
-            if sample['name'] in tag_names:
-                max_prob = max(max_prob, sample['prob'])
-        # Save
-        probs.append(max_prob)
+        prob = assign_prob(frb, mode=mode)
+        probs.append(prob)
     # Return
     return probs
+
+def assign_prob(frb, mode:str):
+    """ Assign a probability to a single FRB based on its tags
+
+    Args:
+        frb (FRBTransient): FRBTransient object
+        mode (str): Observation mode (e.g. 'imaging')
+
+    Returns:
+        float: Probability of the FRB being selected for the given mode
+    """
+    # Criteria
+    criteria, _ = frb_tags.chk_all_criteria(frb)
+    # Which tags are good?
+    good = np.invert(criteria['bright_star']) & criteria['EBV'] 
+    good_idx = np.where(good)[0]
+    if mode == 'imaging':
+        good_tags = criteria['sample'][good_idx]
+    else:
+        good_POx = criteria['POx'][good_idx]
+        good_tags = criteria['sample'][good_idx][good_POx]
+
+    # Grab the weights
+    weights = frb_tags.values_from_tags(frb, 'weight', 
+                                        tag_names=good_tags)
+    
+    return max(0.1, np.max(weights))

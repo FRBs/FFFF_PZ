@@ -41,6 +41,7 @@ from YSE_App import frb_utils
 from YSE_App import frb_status
 from YSE_App import frb_tables
 from YSE_App import frb_tags
+from YSE_App import frb_targeting
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -1612,9 +1613,8 @@ class IngestPathView(APIView):
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Add new tags?
-            if 'new_tags' in data.keys():
-                print("Adding new tags!!")
-                frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
+            if 'new_tags' in data:
+                frb_tags.add_frb_tags(itransient, request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 
@@ -2079,7 +2079,6 @@ def get_frb_path_table(request):
         df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
 
     return JsonResponse(df.to_dict(), status=200)
-
 @csrf_exempt
 @login_or_basic_auth_required
 def get_criteria(request):
@@ -2115,5 +2114,52 @@ def get_criteria(request):
         df = pandas.DataFrame(criteria)
 
     rdict = dict(df=df.to_dict(), message=msg)
+
+    return JsonResponse(rdict, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def chk_frb(request):
+    """ Return a series of diagnostics on an` FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        # Tags
+        tag_names = [frb_tag.name for frb_tag in obj.frb_tags.all()]
+        # Criteria
+        criteria, msg = frb_tags.chk_all_criteria(obj)
+        df = pandas.DataFrame(criteria)
+        # Weight
+        weight = frb_targeting(frb, 'longslit')
+
+    rdict = dict(criteria=df.to_dict(), 
+                 status=obj.status.name,
+                 tags=tag_names,
+                 weight=weight,
+                 message=msg)
 
     return JsonResponse(rdict, status=201)

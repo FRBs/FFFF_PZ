@@ -56,6 +56,7 @@ urlpatterns = [
     re_path(r'^frb_update_status/', data_utils.frb_update_status, name='frb_update_status'),
     re_path(r'^get_frb_table/', data_utils.get_frb_table, name='get_frb_table'),
     re_path(r'^get_criteria/', data_utils.get_criteria, name='get_criteria'),
+    re_path(r'^chk_frb/', data_utils.chk_frb, name='chk_frb'),
     # ##############################################################
 
     # Test pages

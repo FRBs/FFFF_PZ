@@ -5,6 +5,8 @@ code may move to chime_ffff_pz
 Better -- it should become part of the database
  and therefore a Django model
 
+THIS HAS BEEN DEPRECATED!
+
 """
 
 # "Unbiased" sample
