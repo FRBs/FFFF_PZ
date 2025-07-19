@@ -80,12 +80,13 @@ def set_status(frb):
         argsrt = np.argsort(POx_values)
         pri_gal = galaxies[argsrt[-1]]  # Primary galaxy
         # Check the top candidate magnitude
-        rfilter, _ = pri_gal.FilterMagString()
+        rfilter, mag = pri_gal.FilterMagString()
+        mag = float(mag)
         if 'Blanco' in rfilter or 'DECam' in rfilter:
-            if pri_gal.mag > 23.0:
+            if mag > 23.0:
                 r_too_faint = True
         elif 'Pan-STARRS' in rfilter:
-            if pri_gal.mag > 21.0:
+            if mag > 21.0:
                 r_too_faint = True
 
     # Run in reverse order of completion
