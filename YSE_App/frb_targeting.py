@@ -227,6 +227,8 @@ def grab_targets_by_mode(frb_fu, frbs):
                 if frb.host.path_mag is not None and frb.host.path_mag < frb_fu.max_mag:
                     gd_ids.append(frb.id)
             longslit_frbs = longslit_frbs.filter(id__in=gd_ids)
+    else:
+        longslit_frbs = FRBTransient.objects.none()
 
     # Mask -- Not yet implemented
     mask_frbs = FRBTransient.objects.none()
@@ -341,10 +343,16 @@ def assign_prob(frb, mode:str):
         good_tags = criteria['sample'][good_idx]
     else:
         good_POx = criteria['POx'][good_idx]
-        good_tags = criteria['sample'][good_idx][good_POx]
+        if np.any(good_POx):
+            good_tags = criteria['sample'][good_idx][good_POx]
+        else:
+            good_tags = []
 
     # Grab the weights
-    weights = frb_tags.values_from_tags(frb, 'weight', 
+    if len(good_tags) == 0:
+        return 0.
+    else:
+        weights = frb_tags.values_from_tags(frb, 'weight', 
                                         tag_names=good_tags)
-    
+    # Return 
     return max(0.1, np.max(weights))

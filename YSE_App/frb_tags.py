@@ -6,12 +6,30 @@ from YSE_App import frb_status
 from YSE_App import frb_utils
 
 def add_frb_tags(frb, tags:str, user):
+    """
+    Adds tags to a Fast Radio Burst (FRB) object and updates its status.
+
+    This function takes a comma-separated string of tag names, creates or retrieves
+    corresponding FRBTag objects, associates them with the given FRB object, updates
+    the FRB's status, and saves the changes.
+
+    Args:
+        frb: The FRB object to which tags will be added.
+        tags (str): A comma-separated string of tag names to be added to the FRB.
+        user: The user performing the operation, used for creating or retrieving FRBTag objects.
+
+    Returns:
+        None
+    """
+    # Avoid circular import
     from YSE_App.models import FRBTag
 
     # Add new ones
     for tag_name in tags.split(','):
         tag = frb_utils.add_or_grab_obj(
             FRBTag, dict(name=tag_name), {}, user)
+        # TODO
+        # Should we check if the tag already exists?
         frb.frb_tags.add(tag)
 
     # Set status
@@ -121,7 +139,7 @@ def chk_all_criteria(frb):
                     criteria['POx'].append(False)
             else:
                 criteria['N_POx'].append(1)
-                criteria['POx'] = criteria['POx_primary'][-1]
+                criteria['POx'].append(criteria['POx_primary'][-1])
 
             # P(U|x)
             if sample.max_PUx is not None and frb.P_Ux > sample.max_PUx:
@@ -187,13 +205,16 @@ def chk_all_criteria(frb):
                         criteria['z_consistent'].append(True)
                 else:
                     criteria['z_done'].append(False)
+                    criteria['z_consistent'].append(False)
 
         else:
             criteria['POx'].append(False)
+            criteria['POx_primary'].append(False)
             criteria['N_POx'].append(0)
             criteria['PUx'].append(False)
             criteria['ran_deep_PATH'].append(False)
             criteria['z_done'].append(False)
+            criteria['z_consistent'].append(False)
 
 
     # Convert to arrays

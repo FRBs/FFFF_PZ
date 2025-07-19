@@ -1563,7 +1563,8 @@ class IngestPathView(APIView):
                 print("========== DEBUG END ==========\n")
 
             # Now request.data is automatically parsed JSON
-            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 
+                            'P_Ux', 'bright_star', 'new_tags']
             data = {key: request.data.get(key) for key in allowed_keys}
 
             # Validate 'transient_name' separately
@@ -1608,13 +1609,12 @@ class IngestPathView(APIView):
                     bright_star=data['bright_star']
                 )
                 print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
+                # Add new tags?
+                if data['new_tags'] is not None:
+                    frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
             except Exception as e:
                 print(f"DEBUG: Error ingesting PATH results: {e}")
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Add new tags?
-            if 'new_tags' in data:
-                frb_tags.add_frb_tags(itransient, request.user)
 
             return Response({"message": "Ingestion successful."}, status=status.HTTP_200_OK)
 
@@ -2001,7 +2001,7 @@ def frb_update_status(request):
         except ObjectDoesNotExist:
             return JsonResponse({"message": f'FRB {name} not in DB'}, status=401)
         log = frb_status.set_status(frb)
-        log_message += f"{name}: {log}\n"
+        log_message += f"{name}: {log}, status={frb.status.name}\n"
 
     # Return
     return JsonResponse({"message": f"All good! {log_message}"}, status=200)
@@ -2154,12 +2154,13 @@ def chk_frb(request):
         criteria, msg = frb_tags.chk_all_criteria(obj)
         df = pandas.DataFrame(criteria)
         # Weight
-        weight = frb_targeting(frb, 'longslit')
+        weight_img = frb_targeting.assign_prob(obj, 'imaging')
+        weight_spec = frb_targeting.assign_prob(obj, 'longslit')
 
     rdict = dict(criteria=df.to_dict(), 
                  status=obj.status.name,
                  tags=tag_names,
-                 weight=weight,
+                 weights=[weight_img, weight_spec],
                  message=msg)
 
     return JsonResponse(rdict, status=201)
