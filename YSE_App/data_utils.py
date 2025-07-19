@@ -1756,7 +1756,8 @@ def ingest_obslog(request):
 
     # Run
     code, msg = frb_observing.ingest_obslog(obs_tbl, user,
-                                            override=data['override'])
+                                            override=data['override'], 
+                                            keep_pending=data['keep_pending'])
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
