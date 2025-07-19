@@ -4,7 +4,6 @@ import numpy as np
 
 
 from YSE_App import frb_tags
-#from YSE_App.chime import tags as chime_tags
 
 from IPython import embed
 
