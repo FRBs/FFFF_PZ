@@ -1708,7 +1708,8 @@ def ingest_obsplan(request):
     # Run
     code, msg = frb_observing.ingest_obsplan(obs_tbl, user,
                                             data['resource'],
-                                            override=data['override'])
+                                            override=data['override'],
+                                            keep_pending=data['keep_pending'])
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
