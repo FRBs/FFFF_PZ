@@ -2252,5 +2252,7 @@ def update_tags(request):
             print(f"Removed all tags from {data['name']}")
         # Add the new tags
         frb_tags.add_frb_tags(obj, data['tags'], request.user)
+        # Update status
+        frb_status.set_status(obj)
 
     return JsonResponse({"message": 'Success!'}, status=201)
