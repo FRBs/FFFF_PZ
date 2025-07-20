@@ -2246,6 +2246,11 @@ def update_tags(request):
         msg = "FRB does not exist!"
         return JsonResponse({"message":f"m{msg}"}, status=202)
     else: # Do it
+        # Remove all existing tags?
+        if not data['keep_original']:
+            obj.frb_tags.clear()
+            print(f"Removed all tags from {data['name']}")
+        # Add the new tags
         frb_tags.add_frb_tags(obj, data['tags'], request.user)
 
     return JsonResponse({"message": 'Success!'}, status=201)
