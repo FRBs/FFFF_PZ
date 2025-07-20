@@ -2203,6 +2203,7 @@ def get_path(request):
         df['name'] = [galaxy.name for galaxy in galaxies]
         df['ra'] = [galaxy.ra for galaxy in galaxies]
         df['dec'] = [galaxy.dec for galaxy in galaxies]
+        df['ang_size'] = [galaxy.ang_size for galaxy in galaxies]
         df['filter'] = [galaxy.FilterMagString()[0] for galaxy in galaxies]
         df['mag'] = [float(galaxy.FilterMagString()[1]) for galaxy in galaxies]
         df['POx'] = path_values
