@@ -1756,8 +1756,7 @@ def ingest_obslog(request):
 
     # Run
     code, msg = frb_observing.ingest_obslog(obs_tbl, user,
-                                            override=data['override'], 
-                                            keep_pending=data['keep_pending'])
+                                            override=data['override'])
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
@@ -2163,6 +2162,54 @@ def chk_frb(request):
                  status=obj.status.name,
                  tags=tag_names,
                  weights=[weight_img, weight_spec],
+                 message=msg)
+
+    return JsonResponse(rdict, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def get_path(request):
+    """ Return a series of diagnostics on an` FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        path_values, galaxies, path_objs = obj.get_Path_values()
+        # Build a Table
+        df = pandas.DataFrame()
+        df['name'] = [galaxy.name for galaxy in galaxies]
+        df['ra'] = [galaxy.ra for galaxy in galaxies]
+        df['dec'] = [galaxy.dec for galaxy in galaxies]
+        df['filter'] = [galaxy.FilterMagString()[0] for galaxy in galaxies]
+        df['mag'] = [float(galaxy.FilterMagString()[1]) for galaxy in galaxies]
+        df['POx'] = path_values
+
+    # Finish
+    rdict = dict(table=df.to_dict(), 
+                 PUx=obj.P_Ux,
                  message=msg)
 
     return JsonResponse(rdict, status=201)
