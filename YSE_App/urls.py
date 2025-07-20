@@ -58,6 +58,7 @@ urlpatterns = [
     re_path(r'^get_criteria/', data_utils.get_criteria, name='get_criteria'),
     re_path(r'^chk_frb/', data_utils.chk_frb, name='chk_frb'),
     re_path(r'^get_path/', data_utils.get_path, name='get_path'),
+    re_path(r'^update_tags/', data_utils.update_tags, name='update_tags'),
     # ##############################################################
 
     # Test pages
