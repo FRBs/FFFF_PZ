@@ -154,7 +154,7 @@ def set_status(frb):
 
         # P(U|x) too large?
         if not too_shallow:
-            PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
+            PUx_maxs = frb_tags.values_from_tags(frb, 'max_PUx')
             if len(PUx_maxs) > 0:
                 # Use the max
                 PUx_max = np.max(PUx_maxs)
@@ -272,7 +272,7 @@ def set_status(frb):
 
         # Require top P_Ux > min(P_Ux_max)
         #   or r_too_faint
-        PUx_maxs = frb_tags.values_from_tags(frb, 'max_P_Ux')
+        PUx_maxs = frb_tags.values_from_tags(frb, 'max_PUx')
         if (len(PUx_maxs) == 0) or (
             frb.P_Ux > np.min(PUx_maxs)) or r_too_faint:
             frb.status = TransientStatus.objects.get(name='NeedImage')
