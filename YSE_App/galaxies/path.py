@@ -152,7 +152,7 @@ def ingest_path_results(itransient:FRBTransient,
 
     # Set status
     print(f"Updating status")
-    #frb_status.set_status(itransient)
+    frb_status.set_status(itransient)
 
 
     # Return (mainly for testing)
