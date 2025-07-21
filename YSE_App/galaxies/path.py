@@ -148,6 +148,7 @@ def ingest_path_results(itransient:FRBTransient,
 
     # Set host from highest P_Ox
     itransient.host = itransient.best_Path_galaxy
+    itransient.save()
 
     # Set status
     print(f"Updating status")

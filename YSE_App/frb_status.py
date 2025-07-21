@@ -153,7 +153,6 @@ def set_status(frb):
                 too_shallow = False
 
         # P(U|x) too large?
-        '''
         if not too_shallow:
             PUx_maxs = frb_tags.values_from_tags(frb, 'max_PUx')
             if len(PUx_maxs) > 0:
@@ -164,7 +163,6 @@ def set_status(frb):
                         name='UnseenHost')
                     frb.save()
                     return
-        '''
 
     # #########################################################
     # Redshift?
@@ -274,14 +272,12 @@ def set_status(frb):
 
         # Require top P_Ux > min(P_Ux_max)
         #   or r_too_faint
-        '''
         PUx_maxs = frb_tags.values_from_tags(frb, 'max_PUx')
         if (len(PUx_maxs) == 0) or (
             frb.P_Ux > np.min(PUx_maxs)) or r_too_faint:
             frb.status = TransientStatus.objects.get(name='NeedImage')
             frb.save()
             return
-        '''
 
     # #########################################################
     # Need Spectrum
