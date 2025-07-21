@@ -226,13 +226,16 @@ def ingest_z(z_tbl:pandas.DataFrame):
         try:
             resource=FRBFollowUpResource.objects.get(name=row['Resource'])
         except:
-            return 405, f"Resource {row['Resource']} not in DB"
+            # For public redshifts, we didn't use our own Resource
+            if row['Resource'][:4] != 'FFFF':
+                return 405, f"Resource {row['Resource']} not in DB"
 
-        # Check the FRB was observed by this Resource
-        obs = FRBFollowUpObservation.objects.filter(
-            resource=resource, transient=transient)
-        if len(obs) == 0:
-            return 406, f"FRB {row['TNS']} not observed by {row['Resource']}"
+        # Check the FRB was observed by this Resource (if not public)
+        if row['Resource'][:4] != 'FFFF':
+            obs = FRBFollowUpObservation.objects.filter(
+                resource=resource, transient=transient)
+            if len(obs) == 0:
+                return 406, f"FRB {row['TNS']} not observed by {row['Resource']}"
 
         # Update the Galaxy
         galaxy.redshift = row['Redshift']
