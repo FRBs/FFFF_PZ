@@ -164,18 +164,25 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
         obs = frb_utils.add_or_grab_obj(
             FRBFollowUpObservation, required, extras, user)
 
-        # Remove all items from Pending`
-        all_pending = FRBFollowUpRequest.objects.filter(
-            resource=resource)
-        for pending in all_pending:
-            transient = pending.transient
-            # Delete
+        # Remove this FRB from Pending`
+        any_pending = FRBFollowUpRequest.objects.filter(
+            resource=resource, transient=transient)
+        for pending in any_pending:
             pending.delete()
-            # Update status
-            frb_status.set_status(transient)
-
+        
         # Update transient status
         frb_status.set_status(transient)
+
+    # Remove all items from Pending`
+    all_pending = FRBFollowUpRequest.objects.filter(
+        resource=resource)
+    for pending in all_pending:
+        transient = pending.transient
+        # Delete
+        pending.delete()
+        # Update status
+        frb_status.set_status(transient)
+
 
     return 200, "All good"
     
