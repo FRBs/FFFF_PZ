@@ -168,13 +168,13 @@ def chk_all_criteria(frb):
 
             # Check just the primary
             pri_gal = galaxies[-1]
-            if gal.redshift is None:
+            if pri_gal.redshift is None:
                 criteria['z_primary'].append(False)
             else:
                 # Check the redshift source
                 tmp_ok = False
                 for gd_source in good_z_sources:
-                    if gd_source in gal.redshift_source:
+                    if gd_source in pri_gal.redshift_source:
                         tmp_ok = True
                 if tmp_ok:
                     criteria['z_primary'].append(True)
