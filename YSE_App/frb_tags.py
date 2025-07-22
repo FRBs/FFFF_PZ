@@ -167,7 +167,7 @@ def chk_all_criteria(frb):
                     idxs = argsrt[-1:]  # Only one galaxy
 
             # Check just the primary
-            pri_gal = galaxies[-1]
+            pri_gal = galaxies[argsrt[-1]]
             if pri_gal.redshift is None:
                 criteria['z_primary'].append(False)
             else:
