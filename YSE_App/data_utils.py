@@ -2315,7 +2315,7 @@ def update_tags(request):
             obj.frb_tags.clear()
             print(f"Removed all tags from {data['name']}")
         # Add the new tags
-        frb_tags.add_frb_tags(obj, data['tags'], request.user)
+        frb_tags.add_frb_tags(obj, data['tags'], user)
         # Update status
         frb_status.set_status(obj)
 
