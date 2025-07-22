@@ -1892,6 +1892,69 @@ def ingest_frbs(request):
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
 
+
+@csrf_exempt
+@login_or_basic_auth_required
+def modify_frbs(request):
+    """
+    Modify a FRBs from a table
+
+    The request must include the following items
+     in its data (all in JSON, of course; 
+     data types are for after parsing the JSON):
+
+      - table (str): a table of the request with columns 
+            name (str) -- TNS of the FRB 
+            frb_survey (str) -- Survey name, e.g. 
+            ra (float) -- RA of the FRB (centroid) [deg]
+            dec (float) -- Dec of the FRB (centroid) [deg]
+            a_err (float) -- Semi-major localization error of the FRB [deg]
+            b_err (float) -- Semi-minor localization error of the FRB [deg]
+            theta (float) -- Position angle of the FRB; E from N [deg]
+            DM (float) -- Dispersion Measure of the FRB
+      - delete (bool): Delete FRBs first?
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    frb_tbl = pandas.read_json(data['table'])
+    msg = ''
+
+    # Loop me
+    for ss in range(len(frb_tbl)):
+        ifrb = frb_tbl.iloc[ss]
+        # Grab the FRB
+        try:
+            frb = FRBTransient.objects.get(name=ifrb.name)
+        except ObjectDoesNotExist:
+            msg += f"{data['name']} does not exist! Remove from your table"
+            return JsonResponse({"message":f"{msg}"}, status=401)
+            
+        # dict me
+        idict = ifrb.to_dict()
+
+        # Modify
+        _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
+        msg += f"Modified {data['name']}\n"
+
+    # Return
+    return JsonResponse({"message":f"{msg}"}, status=201)
+
 @csrf_exempt
 @login_or_basic_auth_required
 def addmodify_criteria(request):
