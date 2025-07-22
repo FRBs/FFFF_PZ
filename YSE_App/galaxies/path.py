@@ -122,6 +122,10 @@ def ingest_path_results(itransient:FRBTransient,
                  obs_date=datetime.datetime.now()),
             user=user)
 
+        # Update photometry (in case we are re-running and updating photometry)
+        gpd.mag = icand.mag
+        gpd.save()
+
         # Add to transient
         itransient.candidates.add(galaxy)
 
@@ -148,6 +152,7 @@ def ingest_path_results(itransient:FRBTransient,
 
     # Set host from highest P_Ox
     itransient.host = itransient.best_Path_galaxy
+    itransient.save()
 
     # Set status
     print(f"Updating status")

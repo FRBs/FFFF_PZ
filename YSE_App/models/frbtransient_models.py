@@ -260,11 +260,11 @@ class FRBTransient(BaseModel):
         if len(path_values) == 0:
             return 99.
         elif len(path_values) == 1:
-            return galaxies[0].path_mag
+            return path_objs[0].galaxy_mag
         else:
             path_values = np.array(path_values)
             argsrt = np.argsort(path_values)
-            mags = np.array([obj.path_mag for obj in galaxies])
+            mags = np.array([obj.galaxy_mag for obj in path_objs])
             # Sort em
             mags = mags[argsrt]
             return np.min(mags)
@@ -336,3 +336,18 @@ class Path(BaseModel):
 
     def __str__(self):
         return f'Path: {self.transient.name}, {self.galaxy.name}, {self.P_Ox}, {self.vetted}'
+
+    @property
+    def galaxy_mag(self):
+        from YSE_App.models import GalaxyPhotometry
+        from YSE_App.models import GalaxyPhotData
+
+        # Grab the first matching
+        gp = GalaxyPhotometry.objects.filter(
+            galaxy=self.galaxy, instrument=self.band.instrument)[0]
+
+        # Grab the phot data
+        gpd = GalaxyPhotData.objects.get(photometry=gp, band=self.band)
+
+        # Return
+        return gpd.mag
