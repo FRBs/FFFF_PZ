@@ -165,7 +165,7 @@ def targetfrbs_for_fu(frb_fu):
     else:
         gd_frbs = gd_frbs.filter(
             status__in=TransientStatus.objects.filter(
-                name__in=['NeedImage', 'NeedSpectrum']))
+                name__in=['NeedImage', 'NeedSpectrum', 'NeedSecondary']))
 
     # Tags? aka samples
     if frb_fu.frb_tags:
@@ -173,7 +173,7 @@ def targetfrbs_for_fu(frb_fu):
     
     return gd_frbs
 
-def grab_targets_by_mode(frb_fu, frbs):
+def grab_targets_by_mode(frb_fu, frbs, include_secondary:bool=False):
     """ Grab targets by observing mode
 
     Logic is applied as follows:
@@ -185,6 +185,7 @@ def grab_targets_by_mode(frb_fu, frbs):
     Args:
         frb_fu (FRBFollowupResource): Follow-up resource
         frbs (QuerySet): List of FRBTransient objects
+        include_secondary (bool, optional): If True, include secondary targets.
 
     Returns:
         dict: Dictionary of QuerySets for each observing mode

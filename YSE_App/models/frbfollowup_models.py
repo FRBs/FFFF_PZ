@@ -111,7 +111,7 @@ class FRBFollowUpResource(BaseModel):
     def NMaskString(self):
         return f'{self.num_targ_mask}'
 
-    def get_frbs_by_mode(self):
+    def get_frbs_by_mode(self, include_secondary:bool=False):
         """ Generate a dict of valid FRBs for targeting by observing mode
 
         calls frb_targeting.grab_targets_by_mode()
@@ -138,19 +138,24 @@ class FRBFollowUpResource(BaseModel):
         gd_frbs = gd_frbs.filter(id__in=keep_frbs)
 
         # Now the various modes!
-        frbs_by_mode = frb_targeting.grab_targets_by_mode(self, gd_frbs)
+        frbs_by_mode = frb_targeting.grab_targets_by_mode(
+            self, gd_frbs, include_secondary=include_secondary)
 
         return frbs_by_mode
 
-    def generate_target_table(self):
+    def generate_target_table(self, include_secondary:bool=False):
         """ Generate a table of FRBTransients that are valid for this resource, 
         i.e. meet all the criteria including AM
+
+        Args:
+            include_secondary (bool, optional): If True, include NeedSecondary targets.
+                Defaults to False.
 
         Returns:
             pandas.DataFrame: table of FRBTransients for observing
         """
         # All FRBs by mode satisfying criteria
-        frbs_by_mode = self.get_frbs_by_mode()
+        frbs_by_mode = self.get_frbs_by_mode(include_secondary=include_secondary)
 
         # Cut down by number requested and priority
         final_targs_by_mode = frb_targeting.select_with_priority(self, frbs_by_mode)

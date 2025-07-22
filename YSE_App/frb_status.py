@@ -25,7 +25,12 @@ all_status = [\
         # P(O|x) of top 2 > P_Ox_min
         # No pending spectrum
         # No succesfully observed spectrum
+    'NeedSecondary', # Needs spectroscopy for redshift of a secondary candidate
+        # P(O|x) of top 2 > P_Ox_min
+        # Successful redshift for the primary
+        # P(O|x) of primary < P_Ox_min
     'RunDeepPATH', # Needs PATH run on deeper (typically private) imaging
+        # Image taken with success
     'ImagePending', # Pending deeper imaging with an FRBFollowUp
         # FRB appears in FRBFollowUpRequest with mode='image'
     'SpectrumPending', # Pending spectroscopy with an FRBFollowUp
@@ -192,15 +197,21 @@ def set_status(frb):
     if frb.host is not None and frb.host.redshift is not None and \
         np.any(criteria['POx'][good_idx]):  # This last query is superfluous but it is here for clarity 
 
+        # We have a redshift
         if np.any(criteria['z_done'][good_idx] & criteria['z_consistent'][good_idx]):
-            # We have a redshift
             frb.status = TransientStatus.objects.get(name='Redshift')
             frb.save()
             return
 
+        # Amibiguous host
         if np.any(criteria['z_done'][good_idx] & np.invert(criteria['z_consistent'][good_idx])):
-            # Amibiguous host
             frb.status = TransientStatus.objects.get(name='AmbiguousHost')
+            frb.save()
+            return
+
+        # Secondary?
+        if np.any(criteria['z_primary'][good_idx]): 
+            frb.status = TransientStatus.objects.get(name='NeedSecondary')
             frb.save()
             return
 

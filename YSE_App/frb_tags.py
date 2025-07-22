@@ -91,6 +91,7 @@ def chk_all_criteria(frb):
     criteria['ran_deep_PATH'] = []  # True if we ran PATH on deeper imaging
     criteria['z_done'] = []  # True if redshift is done for this tag
     criteria['z_consistent'] = []  # Redshifts of two galaxies are consistent
+    criteria['z_primary'] = []  # True if redshift of primary is done
     criteria['N_POx'] = []
     criteria['PUx'] = [] # True if P(U|x) > max_PUx
 
@@ -165,6 +166,21 @@ def chk_all_criteria(frb):
                 else:
                     idxs = argsrt[-1:]  # Only one galaxy
 
+            # Check just the primary
+            pri_gal = galaxies[-1]
+            if gal.redshift is None:
+                criteria['z_primary'].append(False)
+            else:
+                # Check the redshift source
+                tmp_ok = False
+                for gd_source in good_z_sources:
+                    if gd_source in gal.redshift_source:
+                        tmp_ok = True
+                if tmp_ok:
+                    criteria['z_primary'].append(True)
+                else:
+                    criteria['z_primary'].append(False)
+
             # Loop on the info
             has_redshift = []
             source_ok = []
@@ -215,6 +231,7 @@ def chk_all_criteria(frb):
             criteria['ran_deep_PATH'].append(False)
             criteria['z_done'].append(False)
             criteria['z_consistent'].append(False)
+            criteria['z_primary'].append(False)
 
 
     # Convert to arrays
