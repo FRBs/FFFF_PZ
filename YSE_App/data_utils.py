@@ -1940,9 +1940,9 @@ def modify_frbs(request):
         ifrb = frb_tbl.iloc[ss]
         # Grab the FRB
         try:
-            frb = FRBTransient.objects.get(name=ifrb.name)
+            frb = FRBTransient.objects.get(name=ifrb['name'])
         except ObjectDoesNotExist:
-            msg += f"{ifrb.name} does not exist! Remove from your table"
+            msg += f"{ifrb['name']} does not exist! Remove from your table"
             return JsonResponse({"message":f"{msg}"}, status=401)
             
         # dict me
