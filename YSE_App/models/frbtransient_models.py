@@ -337,3 +337,18 @@ class Path(BaseModel):
 
     def __str__(self):
         return f'Path: {self.transient.name}, {self.galaxy.name}, {self.P_Ox}, {self.vetted}'
+
+    @property
+    def galaxy_mag(self):
+        from YSE_App.models import GalaxyPhotometry
+        from YSE_App.models import GalaxyPhotData
+
+        # Grab the first matching
+        gp = GalaxyPhotometry.objects.filter(
+            galaxy=self.galaxy, instrument=self.band.instrument)[0]
+
+        # Grab the phot data
+        gpd = GalaxyPhotData.objects.get(photometry=gp, band=self.band)
+
+        # Return
+        return gpd.mag

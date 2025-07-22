@@ -122,6 +122,10 @@ def ingest_path_results(itransient:FRBTransient,
                  obs_date=datetime.datetime.now()),
             user=user)
 
+        # Update photometry (in case we are re-running and updating photometry)
+        gpd.mag = icand.mag
+        gpd.save()
+
         # Add to transient
         itransient.candidates.add(galaxy)
 
