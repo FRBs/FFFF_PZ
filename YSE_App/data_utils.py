@@ -1899,9 +1899,8 @@ def modify_frbs(request):
     """
     Modify a FRBs from a table
 
-    The request must include the following items
-     in its data (all in JSON, of course; 
-     data types are for after parsing the JSON):
+    The request must include name, but otherwise
+    can include any of the following items
 
       - table (str): a table of the request with columns 
             name (str) -- TNS of the FRB 
@@ -1912,6 +1911,7 @@ def modify_frbs(request):
             b_err (float) -- Semi-minor localization error of the FRB [deg]
             theta (float) -- Position angle of the FRB; E from N [deg]
             DM (float) -- Dispersion Measure of the FRB
+            repeater (bool) -- Repeater flag for the FRB
       - delete (bool): Delete FRBs first?
 
     Args:
