@@ -1855,7 +1855,7 @@ def ingest_frbs(request):
 
       - table (str): a table of the request with columns 
             name (str) -- TNS of the FRB 
-            frb_survey (str) -- Survey name, e.g. 
+            frb_survey (str) -- Survey name, e.g.  CHIME/FRB
             ra (float) -- RA of the FRB (centroid) [deg]
             dec (float) -- Dec of the FRB (centroid) [deg]
             a_err (float) -- Semi-major localization error of the FRB [deg]
