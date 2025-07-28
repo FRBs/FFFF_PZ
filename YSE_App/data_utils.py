@@ -1878,7 +1878,7 @@ def remove_z(request):
     # Run
     galaxy.redshift = None
     galaxy.redshift_quality = None
-    galaxy.redshift_source = None
+    galaxy.redshift_source = ''
     galaxy.save()
 
     # Return
