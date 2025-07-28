@@ -50,6 +50,7 @@ urlpatterns = [
     re_path(r'^ingest_obslog/', data_utils.ingest_obslog, name='ingest_obslog'),
     re_path(r'^add_frb_resource/', data_utils.add_frb_followup_resource, name='add_frb_followup_resource'),
     re_path(r'^ingest_z/', data_utils.ingest_z, name='ingest_z'),
+    re_path(r'^remove_z/', data_utils.remove_z, name='remove_z'),
     re_path(r'^ingest_frbs/', data_utils.ingest_frbs, name='ingest_frbs'),
     re_path(r'^modify_frbs/', data_utils.modify_frbs, name='modify_frbs'),
     re_path(r'^rm_frb/', data_utils.rm_frb, name='rm_frb'),

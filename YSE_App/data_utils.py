@@ -1843,6 +1843,48 @@ def ingest_z(request):
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
 
+
+@csrf_exempt
+@login_or_basic_auth_required
+def remove_z(request):
+    """
+    Remove the redshift for one galaxy
+
+    The name is held in data['Jname']
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    try:
+        galaxy=FRBGalaxy.objects.get(name=data['Jname'])
+    except:
+        return JsonResponse({"message":f"No galaxy: {data['Jname']} in FFFF-PZ"}, status=401)
+
+    # Run
+    galaxy.redshift = None
+    galaxy.redshift_quality = None
+    galaxy.redshift_source = None
+    galaxy.save()
+
+    # Return
+    return JsonResponse({"message":f"{'Success!'}"}, status=201)
+
+
 @csrf_exempt
 @login_or_basic_auth_required
 def ingest_frbs(request):
