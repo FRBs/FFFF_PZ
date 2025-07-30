@@ -115,6 +115,13 @@ class FRBTransient(BaseModel):
     def DecDecimalString(self):
         return '%.7f'%(self.dec)
 
+    # Localization
+    def aerr_DecimalString(self):
+        return '%.1f'%(self.a_err*3600) # arcsec
+
+    def berr_DecimalString(self):
+        return '%.1f'%(self.b_err*3600) # arcsec
+
     def DMString(self):
         return '%.1f'%(self.DM)
 
