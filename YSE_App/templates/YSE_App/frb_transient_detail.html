@@ -63,7 +63,7 @@
                                                 <p class="text-muted">
                                                     {{ transient.CoordString.0 }}&nbsp;&nbsp;&nbsp;{{ transient.CoordString.1 }}<br>
                                                     <small>{{ transient.RADecimalString }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ transient.DecDecimalString }}</small><br>
-                                                    <small>a={{ transient.aerr_DecimalString }}arcsec&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b={{ transient.berr_DecimalString }}arcsec</small><br>
+                                                    a={{ transient.aerr_DecimalString }}''&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b={{ transient.berr_DecimalString }}''<br>
                                                 </p>
                                             </div>
                                         </div>
@@ -83,6 +83,8 @@
                                         <div class="col-xs-5">
                                             <div class="box box-default box-solid">
                                                 <div class="box-header with-border">
+                                                    <strong style="float:left;margin-right:10px;">Tags:</strong>
+                                                    {{ transient.FRBTagsString }}
                                                     <strong style="float:left;margin-right:10px;">Status:</strong>
                                                     <p style="float:left" id="transient_status_name" >{{ transient.status }}</p>
                                                 </div>
