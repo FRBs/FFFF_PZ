@@ -268,7 +268,7 @@ def select_with_priority(frb_fu, frbs_by_mode:dict):
                 selected_frbs[mode] = frbs_by_mode[mode]
             else:    
                 # Assign priorities
-                probs = assign_probs(frbs_by_mode[mode])
+                probs = assign_probs(frbs_by_mode[mode], mode)
 
                 # Init
                 keep = []
