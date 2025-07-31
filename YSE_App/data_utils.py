@@ -1769,8 +1769,6 @@ def add_frb_followup_resource(request):
     """ Add an FRBFollowUpResource to the DB from an 
     outside request
 
-    This is mainly intended for recovering from a "problem"
-
     Args:
         request (_type_): _description_
 
@@ -1787,14 +1785,17 @@ def add_frb_followup_resource(request):
     username, password = credentials.split(':', 1)
     user = auth.authenticate(username=username, password=password)
 
-    # Use Serializer
-    serializer = FRBFollowUpResourceSerializer(data=data)
-    if serializer.is_valid():
-        serializer.save()
-        print(f"Generated FRBFollowUpResource: {data['name']}")
-    else:
-        return JsonResponse('Not valid!', status=401)
+    # Run
+    code, msg = frb_utils.addmodify_obj(FRBFollowUpResource, data, user)
 
+    # Use Serializer
+    #serializer = FRBFollowUpResourceSerializer(data=data)
+    #if serializer.is_valid():
+    #    serializer.save()
+    #    print(f"Generated FRBFollowUpResource: {data['name']}")
+    #else:
+    #    return JsonResponse('Not valid!', status=401)
+#
     return JsonResponse('Success!', status=201)
 
 
