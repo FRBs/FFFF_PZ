@@ -1788,14 +1788,6 @@ def add_frb_followup_resource(request):
     # Run
     code, msg = frb_utils.addmodify_obj(FRBFollowUpResource, data, user)
 
-    # Use Serializer
-    #serializer = FRBFollowUpResourceSerializer(data=data)
-    #if serializer.is_valid():
-    #    serializer.save()
-    #    print(f"Generated FRBFollowUpResource: {data['name']}")
-    #else:
-    #    return JsonResponse('Not valid!', status=401)
-#
     return JsonResponse({"message":f"{msg}"}, status=code)
 
 
