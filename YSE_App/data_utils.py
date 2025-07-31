@@ -1796,7 +1796,7 @@ def add_frb_followup_resource(request):
     #else:
     #    return JsonResponse('Not valid!', status=401)
 #
-    return JsonResponse('Success!', status=201)
+    return JsonResponse({"message":f"{msg}"}, status=code)
 
 
 @csrf_exempt
