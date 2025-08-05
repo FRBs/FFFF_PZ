@@ -1564,7 +1564,7 @@ class IngestPathView(APIView):
 
             # Now request.data is automatically parsed JSON
             allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 
-                            'P_Ux', 'bright_star', 'new_tags']
+                            'P_Ux', 'bright_star', 'new_tags', 'telescope_name']
             data = {key: request.data.get(key) for key in allowed_keys}
 
             # Validate 'transient_name' separately
@@ -1576,7 +1576,7 @@ class IngestPathView(APIView):
             # Validate other required fields
             required_fields = ['table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
             missing = [field for field in required_fields if data.get(field) is None]
-            if missing:
+            if np.any(missing):
                 print(f"DEBUG: Missing fields: {missing}")
                 return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1606,6 +1606,7 @@ class IngestPathView(APIView):
                     data['P_Ux'],
                     request.user,
                     remove_previous=True,
+                    telescope_name=data['telescope_name'],
                     bright_star=data['bright_star']
                 )
                 print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
