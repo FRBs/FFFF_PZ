@@ -2072,6 +2072,43 @@ def addmodify_criteria(request):
 
 @csrf_exempt
 @login_or_basic_auth_required
+def add_band(request):
+    """
+    Add or modify a PhotometricBand
+
+    The request must include the following items
+     in its data (all in JSON, of course; 
+     data types are for after parsing the JSON):
+
+    - All of the required properties for the FRBSelectionCriteria
+        instrument
+        name
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Run
+    code, msg = frb_utils.addmodify_obj(PhotometricBand, data, user)
+
+    # Return
+    return JsonResponse({"message":f"{msg}"}, status=code)
+
+@csrf_exempt
+@login_or_basic_auth_required
 def rm_frb(request):
     """ Remove an FRBTransient from the DB
     via an outside request
@@ -2301,6 +2338,8 @@ def chk_frb(request):
         weight_spec = frb_targeting.assign_prob(obj, 'longslit')
 
     rdict = dict(criteria=df.to_dict(), 
+                 ra=obj.ra,
+                 dec=obj.dec,
                  status=obj.status.name,
                  tags=tag_names,
                  weights=[weight_img, weight_spec],
