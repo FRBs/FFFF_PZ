@@ -1765,6 +1765,49 @@ def ingest_obslog(request):
 
 @csrf_exempt
 @login_or_basic_auth_required
+def release_pending(request):
+    """
+    Release pending observing entries for a given FRBFollowUpResource
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab the resource
+    try:
+        resource=FRBFollowUpResource.objects.get(name=data['resource'])
+    except:
+        msg = f"Resource {row['Resource']} not in DB"
+        return JsonResponse({"message":f"{msg}"}, status=405)
+
+    # Do it
+    all_pending = FRBFollowUpRequest.objects.filter(
+        resource=resource)
+    for pending in all_pending:
+        transient = pending.transient
+        # Delete
+        pending.delete()
+        # Update status
+        frb_status.set_status(transient)
+
+    # Return
+    return JsonResponse({"message":f"{msg}"}, status=200)
+
+@csrf_exempt
+@login_or_basic_auth_required
 def add_frb_followup_resource(request):
     """ Add an FRBFollowUpResource to the DB from an 
     outside request
