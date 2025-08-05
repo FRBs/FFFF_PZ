@@ -272,19 +272,19 @@ def set_status(frb):
     # #########################################################
     # Too Faint?
     # #########################################################
-    if frb.host is not None:
-        good_POx = criteria['POx'][good_idx]
-        good_tags = criteria['sample'][good_idx][good_POx]
-        mrs = frb_tags.values_from_tags(frb, 'max_mr', tag_names=good_tags)
-
-        # Find mr_max (if it exists)
-        if len(mrs) > 0:
-            mr_max = np.max(mrs)
-            # Use PATH host magnitudes
-            if frb.mag_top_two_PATH > mr_max:
-                frb.status = TransientStatus.objects.get(name='TooFaint')
-                frb.save()
-                return
+    if frb.host is not None and np.all(criteria['too_faint'][good_idx]):
+        #good_POx = criteria['POx'][good_idx]
+        #good_tags = criteria['sample'][good_idx][good_POx]
+        #mrs = frb_tags.values_from_tags(frb, 'max_mr', tag_names=good_tags)
+#
+#        # Find mr_max (if it exists)
+#        if len(mrs) > 0:
+#            mr_max = np.max(mrs)
+#            # Use PATH host magnitudes
+#            if frb.mag_top_two_PATH > mr_max:
+        frb.status = TransientStatus.objects.get(name='TooFaint')
+        frb.save()
+        return
     
     # #########################################################
     # Good Spectrum

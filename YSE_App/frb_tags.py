@@ -94,6 +94,7 @@ def chk_all_criteria(frb):
     criteria['z_primary'] = []  # True if redshift of primary is done
     criteria['N_POx'] = []
     criteria['PUx'] = [] # True if P(U|x) > max_PUx
+    criteria['too_faint'] = [] # True if mag of top P(O|x) > mr_max
 
     # Grab the Sample object
     for frb_tag in frb.frb_tags.all():
@@ -120,7 +121,7 @@ def chk_all_criteria(frb):
 
         # PATH and redshift items
         if frb.host is not None:
-            POx_values, galaxies, _ = frb.get_Path_values()
+            POx_values, galaxies, path_objs = frb.get_Path_values()
             argsrt = np.argsort(POx_values)
             pri_gal = galaxies[argsrt[-1]]  # Primary galaxy
             primary_POx = np.max(POx_values)
@@ -168,6 +169,8 @@ def chk_all_criteria(frb):
 
             # Check just the primary
             pri_gal = galaxies[argsrt[-1]]
+            path_obj = path_objs[argsrt[-1]]
+
             if pri_gal.redshift is None:
                 criteria['z_primary'].append(False)
             else:
@@ -180,6 +183,13 @@ def chk_all_criteria(frb):
                     criteria['z_primary'].append(True)
                 else:
                     criteria['z_primary'].append(False)
+
+            # Too faint?
+            if sample.max_mr is not None and path_obj.galaxy_mag > sample.max_mr:
+                criteria['too_faint'].append(True)
+            else:
+                criteria['too_faint'].append(False)
+            
 
             # Loop on the info
             has_redshift = []
@@ -232,6 +242,7 @@ def chk_all_criteria(frb):
             criteria['z_done'].append(False)
             criteria['z_consistent'].append(False)
             criteria['z_primary'].append(False)
+            criteria['too_faint'].append(False)
 
 
     # Convert to arrays
