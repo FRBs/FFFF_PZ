@@ -184,18 +184,6 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False,
             # Update status
             frb_status.set_status(transient)
 
-
-    # Remove all items from Pending`
-    all_pending = FRBFollowUpRequest.objects.filter(
-        resource=resource)
-    for pending in all_pending:
-        transient = pending.transient
-        # Delete
-        pending.delete()
-        # Update status
-        frb_status.set_status(transient)
-
-
     return 200, "All good"
     
 def ingest_z(z_tbl:pandas.DataFrame):
