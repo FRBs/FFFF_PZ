@@ -1806,7 +1806,7 @@ def release_pending(request):
         frb_status.set_status(transient)
 
     # Return
-    return JsonResponse({"All done"}, status=200)
+    return JsonResponse({'message': "All done"}, status=200)
 
 @csrf_exempt
 @login_or_basic_auth_required
