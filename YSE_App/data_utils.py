@@ -2101,11 +2101,26 @@ def add_band(request):
     username, password = credentials.split(':', 1)
     user = auth.authenticate(username=username, password=password)
 
-    # Run
-    code, msg = frb_utils.addmodify_obj(PhotometricBand, data, user)
+    # Grab the telescope and instrument
+    try:
+        telescope = Telescope.objects.get(name=data['telescope_name'])
+        instrument = Instrument.objects.get(telescope=telescope,
+                                           name=data['instrument'])
+
+        # Add (or grab)
+        obj = frb_utils.add_or_grab_obj(PhotometricBand, 
+                                        dict(instrument=instrument,
+                                        name=data['name']),
+                                        user=user)
+    except:
+        msg = "Bad something!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+
+
 
     # Return
-    return JsonResponse({"message":f"{msg}"}, status=code)
+    msg = 'All good'
+    return JsonResponse({"message":f"{msg}"}, status=200)
 
 @csrf_exempt
 @login_or_basic_auth_required
