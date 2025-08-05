@@ -2110,7 +2110,7 @@ def add_band(request):
         # Add (or grab)
         obj = frb_utils.add_or_grab_obj(PhotometricBand, 
                                         dict(instrument=instrument,
-                                        name=data['name']),
+                                        name=data['name']), {},
                                         user=user)
     except:
         msg = "Bad something!"
