@@ -1596,6 +1596,7 @@ class IngestPathView(APIView):
                 print(f"DEBUG: Error parsing table: {e}")
                 return Response({"error": "Invalid table JSON."}, status=status.HTTP_400_BAD_REQUEST)
 
+
             # Ingest the PATH results
             try:
                 path.ingest_path_results(
