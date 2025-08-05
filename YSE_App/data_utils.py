@@ -1790,7 +1790,7 @@ def release_pending(request):
     try:
         resource=FRBFollowUpResource.objects.get(name=data['resource'])
     except:
-        msg = f"Resource {row['Resource']} not in DB"
+        msg = f"Resource {data['resource']} not in DB"
         return JsonResponse({"message":f"{msg}"}, status=405)
 
     # Do it
