@@ -10,6 +10,7 @@ from YSE_App.common.utilities import getGalaxyname
 from YSE_App.models import FRBGalaxy, GalaxyPhotData 
 from YSE_App.models import GalaxyPhotometry, PhotometricBand
 from YSE_App.models import FRBTransient, Path
+from YSE_App.models import Telescope
 from YSE_App.models import TransientStatus
 from YSE_App.models.instrument_models import Instrument
 from YSE_App.models.enum_models import ObservationGroup
@@ -33,6 +34,7 @@ def ingest_path_results(itransient:FRBTransient,
                         inst_name:str,
                         obs_group:str,
                         P_Ux:float, user,
+                        telescope_name:str=None,
                         bright_star:int=None,
                         remove_previous:bool=True):
     """ Method to ingest a table of PATH results into the DB
@@ -51,9 +53,11 @@ def ingest_path_results(itransient:FRBTransient,
         inst_name (str): Name of the instrument
         obs_group (str): Name of the observation group
         P_Ux (float): PATH unseen probability P(U|x)
+        user (django user object): user 
         bright_star (int, optional): 1=a bright star near the FRB 
             If not None, add to FRBTransient
-        user (django user object): user 
+        telescope_name (str, optional): Name of the telescope. Defaults to None.
+            If None, it is not used
         remove_previous (bool, optional): If True, remove any previous
             entries related to PATH from the DB. Defaults to True.
 
@@ -106,14 +110,21 @@ def ingest_path_results(itransient:FRBTransient,
             pass
         galaxy.save()
 
+        # Instrument
+        idict = dict(name=inst_name)
+        if telescope_name is not None:
+            telescope = Telescope.objects.get(name=telescope_name)
+            idict['telescope'] = telescope
+        instrument=Instrument.objects.get(**idict)
 
         # Photometry
         gp = frb_utils.add_or_grab_obj(
             GalaxyPhotometry, 
-            dict(galaxy=galaxy, instrument=Instrument.objects.get(name=inst_name), 
+            dict(galaxy=galaxy, 
+                 instrument=instrument,
                  obs_group=ObservationGroup.objects.get(name=obs_group)),
                  {}, user=user)
-        band=PhotometricBand.objects.filter(instrument__name=inst_name).get(name=Filter)
+        band=PhotometricBand.objects.filter(instrument=instrument).get(name=Filter)
         gpd = frb_utils.add_or_grab_obj(
             GalaxyPhotData, 
             dict(photometry=gp,
@@ -121,6 +132,10 @@ def ingest_path_results(itransient:FRBTransient,
             dict(mag=icand.mag, 
                  obs_date=datetime.datetime.now()),
             user=user)
+
+        # Update photometry (in case we are re-running and updating photometry)
+        gpd.mag = icand.mag
+        gpd.save()
 
         # Add to transient
         itransient.candidates.add(galaxy)
@@ -148,6 +163,7 @@ def ingest_path_results(itransient:FRBTransient,
 
     # Set host from highest P_Ox
     itransient.host = itransient.best_Path_galaxy
+    itransient.save()
 
     # Set status
     print(f"Updating status")
