@@ -20,8 +20,7 @@ def summary_table():
     frbs['TNS'] = all_tns
 
     # Add basic columns
-    cols = ['ra', 'dec', 'a_err', 'b_err', 'theta', 'DM', 
-            'DM_ISM', 'event_id', 'repeater']
+    cols = ['ra', 'dec', 'a_err', 'b_err', 'theta', 'DM', 'DM_ISM', 'event_id', 'repeater', 'mw_ebv']
     for col in cols:
         frbs[col] = [getattr(frb, col) for frb in all_frbs]
 
