@@ -1643,19 +1643,6 @@ class CandidatesTable(tables.Table):
     #best_redshift = tables.Column(accessor='z_or_hostz',
     #                              verbose_name='Redshift',orderable=True,order_by='host__redshift')
 
-#    status_string = tables.TemplateColumn("""<div class="btn-group">
-#<button style="margin-bottom:-5px;margin-top:-10px;padding:1px 5px" type="button" class="btn btn-default dropdown-toggle btn-md" data-toggle="dropdown">
-#                                            <span id="{{ record.id }}_status_name" class="dropbtn">{{ record.status }}</span>
-#                                        </button>
-#                                        <ul class="dropdown-menu">
-#                                            {% for status in all_transient_statuses %}
-#                                                    <li><a data-status_id="{{ status.id }}" data-status_name="{{ status.name }}" transient_id="{{ record.id }}" class="transientStatusChange" href="#">{{ status.name }}</a></li>
-#                                            {% endfor %}
-#                                        </ul>
-#</div>""",
-#                                          verbose_name='Status',orderable=True,order_by='status')
-
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

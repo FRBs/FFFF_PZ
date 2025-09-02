@@ -10,7 +10,8 @@ from django.db.models import ForeignKey
 
 from YSE_App import frb_status
 from YSE_App import frb_utils
-from YSE_App.models import FRBTransient, FRBTag
+from YSE_App.models import FRBTransient
+from YSE_App import frb_tags
 from YSE_App.models import FRBSampleCriteria
 
 from YSE_App.serializers import FRBSampleCriteriaSerializer
@@ -129,20 +130,8 @@ def add_df_to_db(df_frbs:pandas.DataFrame, user,
         dbtransient.save()
 
         # Tags
-        if 'tags' in transient.keys():
-            # Remove previous
-
-            # Add new ones
-            for tag_name in transient['tags'].split(','):
-                tag = frb_utils.add_or_grab_obj(
-                    FRBTag, dict(name=tag_name), {}, user)
-                dbtransient.frb_tags.add(tag)
-
-            # Set status
-            frb_status.set_status(dbtransient)
-
-            # Save me!
-            dbtransient.save()
+        if hasattr(transient, 'tags'):
+            frb_tags.add_frb_tags(dbtransient, transient['tags'], user)
 
         # Add to list
         dbtransients.append(dbtransient)

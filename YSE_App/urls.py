@@ -48,13 +48,21 @@ urlpatterns = [
     re_path(r'^targets_from_frb_followup_resource/', data_utils.targets_from_frb_followup_resource, name='targets_from_frb_followup_resource'),
     re_path(r'^ingest_obsplan/', data_utils.ingest_obsplan, name='ingest_obsplan'),
     re_path(r'^ingest_obslog/', data_utils.ingest_obslog, name='ingest_obslog'),
+    re_path(r'^release_pending/', data_utils.release_pending, name='release_pending'),
     re_path(r'^add_frb_resource/', data_utils.add_frb_followup_resource, name='add_frb_followup_resource'),
     re_path(r'^ingest_z/', data_utils.ingest_z, name='ingest_z'),
+    re_path(r'^remove_z/', data_utils.remove_z, name='remove_z'),
     re_path(r'^ingest_frbs/', data_utils.ingest_frbs, name='ingest_frbs'),
+    re_path(r'^modify_frbs/', data_utils.modify_frbs, name='modify_frbs'),
     re_path(r'^rm_frb/', data_utils.rm_frb, name='rm_frb'),
     re_path(r'^addmodify_criteria/', data_utils.addmodify_criteria, name='addmodify_criteria'),
+    re_path(r'^add_band/', data_utils.add_band, name='add_band'),
     re_path(r'^frb_update_status/', data_utils.frb_update_status, name='frb_update_status'),
     re_path(r'^get_frb_table/', data_utils.get_frb_table, name='get_frb_table'),
+    re_path(r'^get_criteria/', data_utils.get_criteria, name='get_criteria'),
+    re_path(r'^chk_frb/', data_utils.chk_frb, name='chk_frb'),
+    re_path(r'^get_path/', data_utils.get_path, name='get_path'),
+    re_path(r'^update_tags/', data_utils.update_tags, name='update_tags'),
     # ##############################################################
 
     # Test pages

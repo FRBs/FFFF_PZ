@@ -89,7 +89,8 @@ def ingest_obsplan(obsplan:pandas.DataFrame, user,
 
     return 200, "All good"
     
-def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
+def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False,
+                  keep_pending:bool=False):
     """ Ingest an observing log into the DB
 
     This updates the transient status and adds to FRBFollowUpObservation
@@ -106,14 +107,13 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
         user (_type_): _description_
         override (bool, optional): If True, allow several of the
             checks to be over-ridden.  
+        keep_pending (bool, optional): If True, keep any
+            FRBs not provided but in the Resource in the pending list.
+            Defaults to False.
 
     Returns:
         tuple: (status, message) (int,str) 
     """
-
-    # TODO
-    # Scrub previous entries with the named resource?
-    
     # Loop on rows
     for _, row in obslog.iterrows():
 
@@ -140,7 +140,7 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
             return 405, f"Resource {row['Resource']} not in DB"
 
         # Check we are after the stop date
-        if resource.valid_stop > du_timezone.now():
+        if resource.valid_stop > du_timezone.now() and not keep_pending:
             return 410, "This cannot be executed until after the valid_stop date!"
 
         # Add to FRBFollowUpObservation if not already in there
@@ -164,7 +164,17 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
         obs = frb_utils.add_or_grab_obj(
             FRBFollowUpObservation, required, extras, user)
 
-        # Remove all items from Pending`
+        # Remove this FRB from Pending`
+        any_pending = FRBFollowUpRequest.objects.filter(
+            resource=resource, transient=transient)
+        for pending in any_pending:
+            pending.delete()
+
+        # Update transient status
+        frb_status.set_status(transient)
+
+    # Remove the rest in the Resource from Pending`
+    if not keep_pending:
         all_pending = FRBFollowUpRequest.objects.filter(
             resource=resource)
         for pending in all_pending:
@@ -173,9 +183,6 @@ def ingest_obslog(obslog:pandas.DataFrame, user, override:bool=False):
             pending.delete()
             # Update status
             frb_status.set_status(transient)
-
-        # Update transient status
-        frb_status.set_status(transient)
 
     return 200, "All good"
     
@@ -219,13 +226,16 @@ def ingest_z(z_tbl:pandas.DataFrame):
         try:
             resource=FRBFollowUpResource.objects.get(name=row['Resource'])
         except:
-            return 405, f"Resource {row['Resource']} not in DB"
+            # For public redshifts, we didn't use our own Resource
+            if row['Resource'][:4] != 'FFFF':
+                return 405, f"Resource {row['Resource']} not in DB"
 
-        # Check the FRB was observed by this Resource
-        obs = FRBFollowUpObservation.objects.filter(
-            resource=resource, transient=transient)
-        if len(obs) == 0:
-            return 406, f"FRB {row['TNS']} not observed by {row['Resource']}"
+        # Check the FRB was observed by this Resource (if not public)
+        if row['Resource'][:4] != 'FFFF':
+            obs = FRBFollowUpObservation.objects.filter(
+                resource=resource, transient=transient)
+            if len(obs) == 0:
+                return 406, f"FRB {row['TNS']} not observed by {row['Resource']}"
 
         # Update the Galaxy
         galaxy.redshift = row['Redshift']

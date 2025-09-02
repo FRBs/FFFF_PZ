@@ -40,6 +40,8 @@ from YSE_App import frb_init
 from YSE_App import frb_utils
 from YSE_App import frb_status
 from YSE_App import frb_tables
+from YSE_App import frb_tags
+from YSE_App import frb_targeting
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -1561,7 +1563,8 @@ class IngestPathView(APIView):
                 print("========== DEBUG END ==========\n")
 
             # Now request.data is automatically parsed JSON
-            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
+            allowed_keys = ['transient_name', 'table', 'F', 'instrument', 'obs_group', 
+                            'P_Ux', 'bright_star', 'new_tags', 'telescope_name']
             data = {key: request.data.get(key) for key in allowed_keys}
 
             # Validate 'transient_name' separately
@@ -1573,7 +1576,7 @@ class IngestPathView(APIView):
             # Validate other required fields
             required_fields = ['table', 'F', 'instrument', 'obs_group', 'P_Ux', 'bright_star']
             missing = [field for field in required_fields if data.get(field) is None]
-            if missing:
+            if np.any(missing):
                 print(f"DEBUG: Missing fields: {missing}")
                 return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1593,6 +1596,7 @@ class IngestPathView(APIView):
                 print(f"DEBUG: Error parsing table: {e}")
                 return Response({"error": "Invalid table JSON."}, status=status.HTTP_400_BAD_REQUEST)
 
+
             # Ingest the PATH results
             try:
                 path.ingest_path_results(
@@ -1603,9 +1607,13 @@ class IngestPathView(APIView):
                     data['P_Ux'],
                     request.user,
                     remove_previous=True,
+                    telescope_name=data['telescope_name'],
                     bright_star=data['bright_star']
                 )
                 print(f"DEBUG: Successfully ingested PATH results for {transient_name}")
+                # Add new tags?
+                if data['new_tags'] is not None:
+                    frb_tags.add_frb_tags(itransient, data['new_tags'], request.user)
             except Exception as e:
                 print(f"DEBUG: Error ingesting PATH results: {e}")
                 return Response({"error": f"Ingestion failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1656,7 +1664,8 @@ def targets_from_frb_followup_resource(request):
         return JsonResponse({"message":f"Could not find resource {data['resource_name']} in DB"}, status=402)
 
     # Grab the targets
-    target_table = frb_fu.generate_target_table()
+    target_table = frb_fu.generate_target_table(
+        include_secondary=data['include_secondary'])
 
     # Return
     return JsonResponse(target_table.to_dict(), status=201)
@@ -1702,7 +1711,8 @@ def ingest_obsplan(request):
     # Run
     code, msg = frb_observing.ingest_obsplan(obs_tbl, user,
                                             data['resource'],
-                                            override=data['override'])
+                                            override=data['override'],
+                                            )
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
@@ -1757,11 +1767,52 @@ def ingest_obslog(request):
 
 @csrf_exempt
 @login_or_basic_auth_required
+def release_pending(request):
+    """
+    Release pending observing entries for a given FRBFollowUpResource
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab the resource
+    try:
+        resource=FRBFollowUpResource.objects.get(name=data['resource'])
+    except:
+        msg = f"Resource {data['resource']} not in DB"
+        return JsonResponse({"message":f"{msg}"}, status=405)
+
+    # Do it
+    all_pending = FRBFollowUpRequest.objects.filter(
+        resource=resource)
+    for pending in all_pending:
+        transient = pending.transient
+        # Delete
+        pending.delete()
+        # Update status
+        frb_status.set_status(transient)
+
+    # Return
+    return JsonResponse({'message': "All done"}, status=200)
+
+@csrf_exempt
+@login_or_basic_auth_required
 def add_frb_followup_resource(request):
     """ Add an FRBFollowUpResource to the DB from an 
     outside request
-
-    This is mainly intended for recovering from a "problem"
 
     Args:
         request (_type_): _description_
@@ -1779,15 +1830,10 @@ def add_frb_followup_resource(request):
     username, password = credentials.split(':', 1)
     user = auth.authenticate(username=username, password=password)
 
-    # Use Serializer
-    serializer = FRBFollowUpResourceSerializer(data=data)
-    if serializer.is_valid():
-        serializer.save()
-        print(f"Generated FRBFollowUpResource: {data['name']}")
-    else:
-        return JsonResponse('Not valid!', status=401)
+    # Run
+    code, msg = frb_utils.addmodify_obj(FRBFollowUpResource, data, user)
 
-    return JsonResponse('Success!', status=201)
+    return JsonResponse({"message":f"{msg}"}, status=code)
 
 
 @csrf_exempt
@@ -1835,6 +1881,48 @@ def ingest_z(request):
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
 
+
+@csrf_exempt
+@login_or_basic_auth_required
+def remove_z(request):
+    """
+    Remove the redshift for one galaxy
+
+    The name is held in data['Jname']
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    try:
+        galaxy=FRBGalaxy.objects.get(name=data['Jname'])
+    except:
+        return JsonResponse({"message":f"No galaxy: {data['Jname']} in FFFF-PZ"}, status=401)
+
+    # Run
+    galaxy.redshift = None
+    galaxy.redshift_quality = None
+    galaxy.redshift_source = ''
+    galaxy.save()
+
+    # Return
+    return JsonResponse({"message":f"{'Success!'}"}, status=201)
+
+
 @csrf_exempt
 @login_or_basic_auth_required
 def ingest_frbs(request):
@@ -1846,8 +1934,8 @@ def ingest_frbs(request):
      data types are for after parsing the JSON):
 
       - table (str): a table of the request with columns 
-            TNS (str) -- TNS of the FRB 
-            frb_survey (str) -- TNS of the FRB 
+            name (str) -- TNS of the FRB 
+            frb_survey (str) -- Survey name, e.g.  CHIME/FRB
             ra (float) -- RA of the FRB (centroid) [deg]
             dec (float) -- Dec of the FRB (centroid) [deg]
             a_err (float) -- Semi-major localization error of the FRB [deg]
@@ -1883,6 +1971,69 @@ def ingest_frbs(request):
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
+
+
+@csrf_exempt
+@login_or_basic_auth_required
+def modify_frbs(request):
+    """
+    Modify a FRBs from a table
+
+    The request must include name, but otherwise
+    can include any of the following items
+
+      - table (str): a table of the request with columns 
+            name (str) -- TNS of the FRB 
+            frb_survey (str) -- Survey name, e.g. 
+            ra (float) -- RA of the FRB (centroid) [deg]
+            dec (float) -- Dec of the FRB (centroid) [deg]
+            a_err (float) -- Semi-major localization error of the FRB [deg]
+            b_err (float) -- Semi-minor localization error of the FRB [deg]
+            theta (float) -- Position angle of the FRB; E from N [deg]
+            DM (float) -- Dispersion Measure of the FRB
+            repeater (bool) -- Repeater flag for the FRB
+      - delete (bool): Delete FRBs first?
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    frb_tbl = pandas.read_json(data['table'])
+    msg = ''
+
+    # Loop me
+    for ss in range(len(frb_tbl)):
+        ifrb = frb_tbl.iloc[ss]
+        # Grab the FRB
+        try:
+            frb = FRBTransient.objects.get(name=ifrb['name'])
+        except ObjectDoesNotExist:
+            msg += f"{ifrb['name']} does not exist! Remove from your table"
+            return JsonResponse({"message":f"{msg}"}, status=401)
+            
+        # dict me
+        idict = ifrb.to_dict()
+
+        # Modify
+        _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
+        msg += f"Modified {data['name']}\n"
+
+    # Return
+    return JsonResponse({"message":f"{msg}"}, status=201)
 
 @csrf_exempt
 @login_or_basic_auth_required
@@ -1920,6 +2071,58 @@ def addmodify_criteria(request):
 
     # Return
     return JsonResponse({"message":f"{msg}"}, status=code)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def add_band(request):
+    """
+    Add or modify a PhotometricBand
+
+    The request must include the following items
+     in its data (all in JSON, of course; 
+     data types are for after parsing the JSON):
+
+    - All of the required properties for the FRBSelectionCriteria
+        instrument
+        name
+
+    Args:
+        request (requests.request): 
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse: 
+    """
+    
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab the telescope and instrument
+    try:
+        telescope = Telescope.objects.get(name=data['telescope_name'])
+        instrument = Instrument.objects.get(telescope=telescope,
+                                           name=data['instrument'])
+
+        # Add (or grab)
+        obj = frb_utils.add_or_grab_obj(PhotometricBand, 
+                                        dict(instrument=instrument,
+                                        name=data['name']), {},
+                                        user=user)
+    except:
+        msg = "Bad something!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+
+
+
+    # Return
+    msg = 'All good'
+    return JsonResponse({"message":f"{msg}"}, status=200)
 
 @csrf_exempt
 @login_or_basic_auth_required
@@ -1995,7 +2198,7 @@ def frb_update_status(request):
         except ObjectDoesNotExist:
             return JsonResponse({"message": f'FRB {name} not in DB'}, status=401)
         log = frb_status.set_status(frb)
-        log_message += f"{name}: {log}\n"
+        log_message += f"{name}: {log}, status={frb.status.name}\n"
 
     # Return
     return JsonResponse({"message": f"All good! {log_message}"}, status=200)
@@ -2073,3 +2276,181 @@ def get_frb_path_table(request):
         df = pandas.DataFrame(dict(POx=path_values, candidates=galaxies))
 
     return JsonResponse(df.to_dict(), status=200)
+@csrf_exempt
+@login_or_basic_auth_required
+def get_criteria(request):
+    """ Return a table of the PATH info for a given FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        criteria, msg = frb_tags.chk_all_criteria(obj)
+        df = pandas.DataFrame(criteria)
+
+    rdict = dict(df=df.to_dict(), message=msg)
+
+    return JsonResponse(rdict, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def chk_frb(request):
+    """ Return a series of diagnostics on an` FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        # Tags
+        tag_names = [frb_tag.name for frb_tag in obj.frb_tags.all()]
+        # Criteria
+        criteria, msg = frb_tags.chk_all_criteria(obj)
+        df = pandas.DataFrame(criteria)
+        # Weight
+        weight_img = frb_targeting.assign_prob(obj, 'imaging')
+        weight_spec = frb_targeting.assign_prob(obj, 'longslit')
+
+    rdict = dict(criteria=df.to_dict(), 
+                 ra=obj.ra,
+                 dec=obj.dec,
+                 status=obj.status.name,
+                 tags=tag_names,
+                 weights=[weight_img, weight_spec],
+                 message=msg)
+
+    return JsonResponse(rdict, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def get_path(request):
+    """ Return a series of diagnostics on an` FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        path_values, galaxies, path_objs = obj.get_Path_values()
+        # Build a Table
+        df = pandas.DataFrame()
+        df['name'] = [galaxy.name for galaxy in galaxies]
+        df['ra'] = [galaxy.ra for galaxy in galaxies]
+        df['dec'] = [galaxy.dec for galaxy in galaxies]
+        df['ang_size'] = [galaxy.ang_size for galaxy in galaxies]
+        df['filter'] = [galaxy.FilterMagString()[0] for galaxy in galaxies]
+        df['mag'] = [float(galaxy.FilterMagString()[1]) for galaxy in galaxies]
+        df['P_Ox'] = path_values
+
+    # Finish
+    rdict = dict(table=df.to_dict(), 
+                 PUx=obj.P_Ux,
+                 message=msg)
+
+    return JsonResponse(rdict, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
+def update_tags(request):
+    """ Return a series of diagnostics on an` FRB
+
+    Input data includes:
+        - name (str): TNS Name of the FRBTransient
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        JsonResponse: _description_
+    """
+    
+    data = JSONParser().parse(request)
+
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+
+    user = auth.authenticate(username=username, password=password)
+
+    # Grab it
+    msg = ''
+    try:
+        obj = FRBTransient.objects.get(name=data['name'])
+    except ObjectDoesNotExist:
+        msg = "FRB does not exist!"
+        return JsonResponse({"message":f"m{msg}"}, status=202)
+    else: # Do it
+        # Remove all existing tags?
+        if not data['keep_original']:
+            obj.frb_tags.clear()
+            print(f"Removed all tags from {data['name']}")
+        # Add the new tags
+        frb_tags.add_frb_tags(obj, data['tags'], user)
+        # Update status
+        frb_status.set_status(obj)
+
+    return JsonResponse({"message": 'Success!'}, status=201)
