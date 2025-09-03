@@ -60,21 +60,34 @@ def summary_table():
     cand_poxs = [frb.get_Path_values()[0][:2] if frb.host else np.nan for frb in all_frbs]
     frbs['cand_POx'] = cand_poxs
 
-    cand_gal_names = [get_gal_name_from_qs(frb.get_Path_values()[1][:2]) if frb.host else [] for frb in all_frbs]
+    cand_gal_names = [get_gal_attr_from_qs(frb.get_Path_values()[1][:2]) if frb.host else [] for frb in all_frbs]
     frbs['cand_gal_names'] = cand_gal_names
+
+    cand_gal_redshifts = [get_gal_attr_from_qs(frb.get_Path_values()[2][:2],'redshift') if frb.host else [] for frb in all_frbs]
+    frbs['cand_gal_redshifts'] = cand_gal_redshifts
 
     # Return
     return frbs
 
 
-def get_gal_name_from_qs(qs):
+def get_gal_attr_from_qs(qs,attr="name"):
     """
-    Given a QuerySet of galaxies, return a list of their names.
+    Given a QuerySet of galaxies, return a list of their attributes.
 
     Parameters:
     qs (QuerySet): A QuerySet of galaxy objects.
 
     Returns:
-        list: A list of galaxy names.
+        list: A list of galaxy attribute.
     """
-    return [gal.name for gal in qs]
+    if attr == "name":
+        default_val = ""
+
+    elif attr in ["redshift","P_Ox","path_mag"]:
+        default_val = np.nan
+
+    else:
+        default_val = None
+
+
+    return [getattr(gal,attr,default_val) for gal in qs]
