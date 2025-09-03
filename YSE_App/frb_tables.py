@@ -57,10 +57,10 @@ def summary_table():
 
 
     # Top two candidates
-    cand_poxs = [frb.get_Path_values()[0][:2] if frb.host else np.nan for frb in all_frbs]
+    cand_poxs = [get_top_two_pox_gal_attr(frb,attr="P_Ox") for frb in all_frbs]
     frbs['cand_POx'] = cand_poxs
 
-    cand_gal_names = [get_gal_attr_from_qs(frb.get_Path_values()[1][:2]) if frb.host else [] for frb in all_frbs]
+    cand_gal_names = [get_top_two_pox_gal_attr(frb,attr="name") for frb in all_frbs]
     frbs['cand_gal_names'] = cand_gal_names
 
     cand_gal_redshifts = [get_gal_attr_from_qs(frb.get_Path_values()[1][:2],'redshift') if frb.host else [] for frb in all_frbs]
@@ -91,3 +91,33 @@ def get_gal_attr_from_qs(qs,attr="name"):
 
 
     return [getattr(gal,attr,default_val) for gal in qs]
+
+
+def get_top_two_pox_gal_attr(frb_obj,attr="name"):
+    """
+    Given an FRBTransient object, return the names of the top two galaxies based on P_Ox.
+
+    Parameters:
+    frb_obj (FRBTransient): An FRBTransient object.
+
+    Returns:
+        list: A list of the names of the top two galaxies based on P_Ox.
+    """
+    if not frb_obj.host:
+        return []
+    
+    path_values = frb_obj.get_Path_values()[0]
+    # Get the indices of the top two P_Ox values
+    top_two_indices = np.argsort(path_values)[-2:][::-1]
+
+
+    if attr == "P_Ox":
+        gal_attr = [path_values[i] for i in top_two_indices]
+
+    else:        
+        # Get the corresponding galaxy attributes
+        gal_qs = [frb_obj.get_Path_values()[1][i] for i in top_two_indices]
+
+        gal_attr = get_gal_attr_from_qs(gal_qs,attr=attr)
+
+    return gal_attr
