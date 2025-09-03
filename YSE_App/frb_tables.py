@@ -63,7 +63,7 @@ def summary_table():
     cand_gal_names = [get_gal_attr_from_qs(frb.get_Path_values()[1][:2]) if frb.host else [] for frb in all_frbs]
     frbs['cand_gal_names'] = cand_gal_names
 
-    cand_gal_redshifts = [get_gal_attr_from_qs(frb.get_Path_values()[2][:2],'redshift') if frb.host else [] for frb in all_frbs]
+    cand_gal_redshifts = [get_gal_attr_from_qs(frb.get_Path_values()[1][:2],'redshift') if frb.host else [] for frb in all_frbs]
     frbs['cand_gal_redshifts'] = cand_gal_redshifts
 
     # Return
