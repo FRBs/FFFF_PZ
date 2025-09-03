@@ -55,5 +55,26 @@ def summary_table():
     z_src = ['' if item is None else item for item in z_src]
     frbs['z_src'] = np.array(z_src)
 
+
+    # Top two candidates
+    cand_poxs = [frb.get_Path_values()[0][:2] if frb.host else np.nan for frb in all_frbs]
+    frbs['cand_POx'] = cand_poxs
+
+    cand_gal_names = [get_gal_name_from_qs(frb.get_Path_values()[1][:2]) if frb.host else [] for frb in all_frbs]
+    frbs['cand_gal_names'] = cand_gal_names
+
     # Return
     return frbs
+
+
+def get_gal_name_from_qs(qs):
+    """
+    Given a QuerySet of galaxies, return a list of their names.
+
+    Parameters:
+    qs (QuerySet): A QuerySet of galaxy objects.
+
+    Returns:
+        list: A list of galaxy names.
+    """
+    return [gal.name for gal in qs]
