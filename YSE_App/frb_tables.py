@@ -95,13 +95,13 @@ def get_gal_attr_from_qs(qs,attr="name"):
 
 def get_top_two_pox_gal_attr(frb_obj,attr="name"):
     """
-    Given an FRBTransient object, return the names of the top two galaxies based on P_Ox.
+    Given an FRBTransient object, return the attributes of the top two galaxies based on P_Ox.
 
     Parameters:
     frb_obj (FRBTransient): An FRBTransient object.
 
     Returns:
-        list: A list of the names of the top two galaxies based on P_Ox.
+        list: A list of the attributes of the top two galaxies based on P_Ox.
     """
     if not frb_obj.host:
         return []
