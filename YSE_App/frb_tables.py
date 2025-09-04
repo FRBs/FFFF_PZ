@@ -106,7 +106,7 @@ def get_top_two_pox_gal_attr(frb_obj,attr="name"):
     if not frb_obj.host:
         return []
     
-    path_values = frb_obj.get_Path_values()[0]
+    path_values,galaxies,_ = frb_obj.get_Path_values()
     # Get the indices of the top two P_Ox values
     top_two_indices = np.argsort(path_values)[-2:][::-1]
 
@@ -116,7 +116,7 @@ def get_top_two_pox_gal_attr(frb_obj,attr="name"):
 
     else:        
         # Get the corresponding galaxy attributes
-        gal_qs = [frb_obj.get_Path_values()[1][i] for i in top_two_indices]
+        gal_qs = [galaxies[i] for i in top_two_indices]
 
         gal_attr = get_gal_attr_from_qs(gal_qs,attr=attr)
 
