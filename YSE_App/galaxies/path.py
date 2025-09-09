@@ -71,19 +71,7 @@ def ingest_path_results(itransient:FRBTransient,
 
     # Remove previous
     if remove_previous:
-        for p in Path.objects.filter(transient=itransient):
-            galaxy = FRBGalaxy.objects.get(name=p.galaxy.name)
-            # Remove candidate
-            itransient.candidates.remove(galaxy)
-            # Remove galaxy altogether (likely)?
-            delete_galaxy = True
-            for t in FRBTransient.objects.all():
-                if galaxy in t.candidates.all():
-                    delete_galaxy = False
-            if delete_galaxy:  # This also deletes the photometry
-                galaxy.delete()
-            # Delete from PATH table
-            p.delete()
+        delete_path_entries(itransient)
 
     # Add new ones to DB
     print('Looping on candidates')
@@ -173,3 +161,36 @@ def ingest_path_results(itransient:FRBTransient,
     # Return (mainly for testing)
     return str(gp.instrument)
 
+
+def delete_path_entries(itransient):
+    """
+    Deletes path entries associated with a given transient and performs cleanup 
+    of related galaxy and candidate data.
+
+    Args:
+        itransient (FRBTransient): The transient object whose path entries 
+                                   are to be deleted.
+
+    Functionality:
+        1. Iterates through all Path objects linked to the given transient.
+        2. For each path:
+           - Retrieves the associated galaxy.
+           - Removes the galaxy from the transient's candidates.
+           - Checks if the galaxy is a candidate for any other transient.
+           - Deletes the galaxy if it is not associated with any other transient, 
+             including its photometry data.
+           - Deletes the path entry from the Path table.
+    """
+    for p in Path.objects.filter(transient=itransient):
+        galaxy = FRBGalaxy.objects.get(name=p.galaxy.name)
+        # Remove candidate
+        itransient.candidates.remove(galaxy)
+        # Remove galaxy altogether (likely)?
+        delete_galaxy = True
+        for t in FRBTransient.objects.all():
+            if galaxy in t.candidates.all():
+                delete_galaxy = False
+        if delete_galaxy:  # This also deletes the photometry
+            galaxy.delete()
+        # Delete from PATH table
+        p.delete()

@@ -2033,6 +2033,11 @@ def modify_frbs(request):
         _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
         msg += f"Modified {data['name']}\n"
 
+        # Remove PATH?
+        if data['remove_path']:
+            path.delete_path_entries(frb)
+        
+
     # Return
     return JsonResponse({"message":f"{msg}"}, status=201)
 
