@@ -2031,7 +2031,7 @@ def modify_frbs(request):
 
         # Modify
         _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
-        msg += f"Modified {data['name']}\n"
+        msg += f"Modified {ifrb['name']}\n"
 
         # Remove PATH?
         if data['remove_path']:
