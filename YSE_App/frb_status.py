@@ -148,7 +148,8 @@ def set_status(frb):
     # #########################################################
     # Need Image
     # #########################################################
-    if (np.any(criteria['PUx'][good_idx]) or r_too_faint) and (
+    if (np.any(criteria['PUx'][good_idx] & np.invert(criteria['skip_need_image'])) or (
+        r_too_faint & (not np.all(criteria['skip_need_image'])))) and (
         not FRBFollowUpRequest.objects.filter(
             transient=frb,
             mode='imaging').exists()) and (
