@@ -204,6 +204,9 @@ def grab_targets_by_mode(frb_fu, frbs, include_secondary:bool=False):
     if frb_fu.num_targ_longslit > 0:
         longslit_frbs = frbs.filter(
             status=TransientStatus.objects.get(name='NeedSpectrum'))
+        if include_secondary:
+            longslit_frbs = longslit_frbs | frbs.filter(
+                status=TransientStatus.objects.get(name='NeedSecondary'))
 
         # Cut on P_Ox?
         if frb_fu.min_POx:
