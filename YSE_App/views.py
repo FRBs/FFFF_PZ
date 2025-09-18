@@ -1890,6 +1890,26 @@ def frb_transient_detail(request, slug):
 
 @login_required
 def frb_followup_resource(request, slug):
+    """
+    Handles the FRB follow-up resource view.
+    This view retrieves and displays information about a specific FRB (Fast Radio Burst) follow-up resource, 
+    including its validity, associated FRBs, pending follow-up requests, and observations. It also builds 
+    tables for displaying the data in the template.
+    Args:
+        request (HttpRequest): The HTTP request object.
+        slug (str): The unique identifier for the FRB follow-up resource.
+    Returns:
+        HttpResponse: The rendered HTML page displaying the FRB follow-up resource details.
+    Context:
+        frb_fu (FRBFollowUpResource): The FRB follow-up resource object.
+        anchor (str): The anchor extracted from the query string, if present.
+        {key}_table (FRBTransientTable): Tables for valid FRBs by observing mode (if the resource is valid).
+        pending_table (FRBTransientTable): Table of pending FRBs for follow-up.
+        obs_table (FRBTransientTable): Table of observed FRBs (if observations exist).
+        obslog_table (FRBFollowupObservationsTable): Table of follow-up observations (if observations exist).
+    Raises:
+        FRBFollowUpResource.DoesNotExist: If the FRB follow-up resource with the given slug does not exist.
+    """
 
     frb_fu = FRBFollowUpResource.objects.get(slug=slug)
     is_old = frb_fu.valid_stop < du_timezone.now()
