@@ -62,7 +62,7 @@ class FRBSampleCriteria(BaseModel):
     max_a = models.FloatField(null=True, blank=True)
 
     # Skip NeedImage
-    skip_need_image = models.BooleanField(default=False, blank=True)
+    skip_need_image = models.BooleanField(null=True, blank=True)
     
 
     def __str__(self):
