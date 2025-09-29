@@ -226,6 +226,16 @@ def set_status(frb):
         frb.status = TransientStatus.objects.get(name='TooFaint')
         frb.save()
         return
+
+    # #########################################################
+    # Pending Spectrum
+    # #########################################################
+    if FRBFollowUpRequest.objects.filter(
+            transient=frb,
+            mode__in=['longslit','mask']).exists():
+        frb.status = TransientStatus.objects.get(name='SpectrumPending')
+        frb.save()
+        return
     
     # #########################################################
     # Good Spectrum
@@ -235,16 +245,6 @@ def set_status(frb):
             success=True,
             mode__in=['longslit','mask']).exists():
         frb.status = TransientStatus.objects.get(name='GoodSpectrum')
-        frb.save()
-        return
-
-    # #########################################################
-    # Pending Spectrum
-    # #########################################################
-    if FRBFollowUpRequest.objects.filter(
-            transient=frb,
-            mode__in=['longslit','mask']).exists():
-        frb.status = TransientStatus.objects.get(name='SpectrumPending')
         frb.save()
         return
 
