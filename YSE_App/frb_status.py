@@ -148,7 +148,8 @@ def set_status(frb):
     # #########################################################
     # Need Image
     # #########################################################
-    if (np.any(criteria['PUx'][good_idx]) or r_too_faint) and (
+    if (np.any(criteria['PUx'][good_idx] & np.invert(criteria['skip_need_image'])) or (
+        r_too_faint & (not np.all(criteria['skip_need_image'])))) and (
         not FRBFollowUpRequest.objects.filter(
             transient=frb,
             mode='imaging').exists()) and (
@@ -194,6 +195,7 @@ def set_status(frb):
     # #########################################################
     # Redshift?
     # #########################################################
+    flg_need_secondary = False
     if frb.host is not None and frb.host.redshift is not None and \
         np.any(criteria['POx'][good_idx]):  # This last query is superfluous but it is here for clarity 
 
@@ -213,76 +215,25 @@ def set_status(frb):
         if np.any(criteria['z_primary'][good_idx]): 
             frb.status = TransientStatus.objects.get(name='NeedSecondary')
             frb.save()
-            return
+            flg_need_secondary = True
+            # Do not return yet, we want to check for spectrum next
 
-        '''
-        # Grab info
-        path_values, galaxies, _ = frb.get_Path_values()
-        argsrt = np.argsort(path_values)
-
-        # Items to loop over
-        if POx_satisfied_primary: 
-            idxs = argsrt[-1:]  # Primary is the last one
-        else:
-            idxs = argsrt[-2:]  # Top 2
-
-        # Loop on the info
-        has_redshift = []
-        source_ok = []
-        for ss, idx in enumerate(idxs):
-            # Grab the galaxy
-            gal = galaxies[idx]
-            # Check redshift
-            if gal.redshift is None:
-                has_redshift.append(False)
-            else:
-                has_redshift.append(True)
-            # Check the redshift source
-            tmp_ok = False
-            for gd_source in good_z_sources:
-                if gd_source in gal.redshift_source:
-                    tmp_ok = True
-            source_ok.append(tmp_ok)
-
-        # Time to set the status
-        if POx_satisfied_primary:
-            log_message += "I AM A PRIMARY-"
-            # Ok?
-            if np.all(has_redshift) and np.all(source_ok):
-                frb.status = TransientStatus.objects.get(name='Redshift')
-                frb.save()
-                return log_message
-        else: # Top 2
-            log_message += "I AM NOT A PRIMARY-"
-            # Check the redshifts are nearly the same
-            if np.all(has_redshift) and np.all(source_ok):
-                log_message += "I AM OK-"
-                if np.abs(galaxies[argsrt[-1]].redshift - galaxies[argsrt[-2]].redshift) > 0.003:
-                    log_message += "I AM NOT CONSINSTENT-"
-                    frb.status = TransientStatus.objects.get(name='AmbiguousHost') 
-                    frb.save()
-                    return log_message
-                else:
-                    log_message += "I AM CONSINSTENT-"
-                    frb.status = TransientStatus.objects.get(name='Redshift')
-                    frb.save()
-                    return log_message
-        '''
 
     # #########################################################
     # Too Faint?
     # #########################################################
     if frb.host is not None and np.all(criteria['too_faint'][good_idx]):
-        #good_POx = criteria['POx'][good_idx]
-        #good_tags = criteria['sample'][good_idx][good_POx]
-        #mrs = frb_tags.values_from_tags(frb, 'max_mr', tag_names=good_tags)
-#
-#        # Find mr_max (if it exists)
-#        if len(mrs) > 0:
-#            mr_max = np.max(mrs)
-#            # Use PATH host magnitudes
-#            if frb.mag_top_two_PATH > mr_max:
         frb.status = TransientStatus.objects.get(name='TooFaint')
+        frb.save()
+        return
+
+    # #########################################################
+    # Pending Spectrum
+    # #########################################################
+    if FRBFollowUpRequest.objects.filter(
+            transient=frb,
+            mode__in=['longslit','mask']).exists():
+        frb.status = TransientStatus.objects.get(name='SpectrumPending')
         frb.save()
         return
     
@@ -298,33 +249,15 @@ def set_status(frb):
         return
 
     # #########################################################
-    # Pending Spectrum
+    # Need Secondary?
     # #########################################################
-    if FRBFollowUpRequest.objects.filter(
-            transient=frb,
-            mode__in=['longslit','mask']).exists():
-        frb.status = TransientStatus.objects.get(name='SpectrumPending')
-        frb.save()
+    if flg_need_secondary:
         return
-
 
     # #########################################################
     # Need Spectrum
     # #########################################################
     if frb.host is not None and np.any(criteria['POx'][good_idx]):
-        #not FRBFollowUpRequest.objects.filter(
-        #    transient=frb,
-        #    mode__in=['longslit','mask']).exists()) and (
-        #not FRBFollowUpObservation.objects.filter(
-        #    transient=frb,
-        #    success=True,
-        #    mode__in=['longslit','mask']).exists()): 
-
-        # Require top 2 P(O|x) > min(P_Ox_min)
-        #print(f"Need spec :POx_mins = {POx_mins}, {frb.sum_top_two_PATH}")
-        #POx_mins = frb_tags.values_from_tags(frb, 'min_POx')
-        #if (len(POx_mins) == 0) or (
-        #    frb.sum_top_two_PATH > np.min(POx_mins)):
         frb.status = TransientStatus.objects.get(name='NeedSpectrum')
         frb.save()
         return

@@ -61,6 +61,9 @@ class FRBSampleCriteria(BaseModel):
     # Localization
     max_a = models.FloatField(null=True, blank=True)
 
+    # Skip NeedImage
+    skip_need_image = models.BooleanField(null=True, blank=True)
+    
 
     def __str__(self):
         return f'Name: {self.name} Survey: {self.frb_survey} Version: {self.version}' 

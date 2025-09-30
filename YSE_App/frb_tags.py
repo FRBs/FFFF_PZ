@@ -93,8 +93,9 @@ def chk_all_criteria(frb):
     criteria['z_consistent'] = []  # Redshifts of two galaxies are consistent
     criteria['z_primary'] = []  # True if redshift of primary is done
     criteria['N_POx'] = []
-    criteria['PUx'] = [] # True if P(U|x) > max_PUx
+    criteria['PUx'] = [] # True if P(U|x) > max_PUx;  used for NeedImage and Unseen
     criteria['too_faint'] = [] # True if mag of top P(O|x) > mr_max
+    criteria['skip_need_image'] = [] # True if skip_need_image is set
 
     # Grab the Sample object
     for frb_tag in frb.frb_tags.all():
@@ -118,6 +119,11 @@ def chk_all_criteria(frb):
         # Run Public PATH?
         criteria['run_public_PATH'].append(sample.run_public_path)
 
+        # Skip need imaging?
+        if sample.skip_need_image is not None and sample.skip_need_image:
+            criteria['skip_need_image'].append(True)
+        else:
+            criteria['skip_need_image'].append(False)
 
         # PATH and redshift items
         if frb.host is not None:
