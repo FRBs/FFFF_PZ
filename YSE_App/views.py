@@ -1264,7 +1264,6 @@ def transient_detail(request, slug):
         date_format='%m/%d/%Y %H:%M:%S'
 
         # Build GitHub browse link to the directory holding the cutout
-        # Build GitHub browse link to the directory holding the cutout
         browse_url = None
         m = re.search(r"FRB(\d{4})", transient_obj.name or "")
         if m:
