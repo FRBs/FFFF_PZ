@@ -1670,6 +1670,43 @@ def targets_from_frb_followup_resource(request):
     # Return
     return JsonResponse(target_table.to_dict(), status=201)
 
+@csrf_exempt
+@login_or_basic_auth_required
+def get_target_table_for_any_frb(request):
+    """
+    Grab a table of targets for a provided FRB name
+
+    The request must include the following items
+     in its data (all in JSON, of course; 
+     data types refer to those after parsing the JSON):
+
+      - frb_name (str): Name of the FRBTransient object
+
+    Returns:
+        JsonResponse: Table of information
+    """
+    from YSE_App import frb_targeting
+
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Get frb objects
+    tbl = pandas.read_json(data['table'])
+    frbs = FRBTransient.objects.filter(name__in=tbl.name.values)
+
+    mode = data['mode']
+
+    target_table = frb_targeting.target_table_from_frbs(frbs,mode)
+
+    return JsonResponse(target_table.to_dict(), status=201)
+
+
 
 @csrf_exempt
 @login_or_basic_auth_required

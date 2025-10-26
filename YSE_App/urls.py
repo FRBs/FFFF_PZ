@@ -46,6 +46,7 @@ urlpatterns = [
     re_path(r'^ingest_path/', data_utils.IngestPathView.as_view(), name='ingest_path'),
     re_path(r'^debug_request/', data_utils.debug_request, name='debug_request'),
     re_path(r'^targets_from_frb_followup_resource/', data_utils.targets_from_frb_followup_resource, name='targets_from_frb_followup_resource'),
+    re_path(r'^get_target_table_for_any_frb/',data_utils.get_target_table_for_any_frb, name='get_target_table_for_any_frb'),
     re_path(r'^ingest_obsplan/', data_utils.ingest_obsplan, name='ingest_obsplan'),
     re_path(r'^ingest_obslog/', data_utils.ingest_obslog, name='ingest_obslog'),
     re_path(r'^release_pending/', data_utils.release_pending, name='release_pending'),
