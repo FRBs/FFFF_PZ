@@ -1681,6 +1681,7 @@ def get_target_table_for_any_frb(request):
      data types refer to those after parsing the JSON):
 
       - frb_name (str): Name of the FRBTransient object
+      - mode (str): Mode of observation
 
     Returns:
         JsonResponse: Table of information
