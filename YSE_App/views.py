@@ -955,6 +955,23 @@ def path_cutout_proxy(request, frb_name: str) -> HttpResponse:
 
     Expected format:
       chime-path/chime_path/<YEAR>/<FRBNAME>/<FRBNAME>_PATH.png
+
+    Django view that proxies a CHIME path cutout image from GitHub.
+
+    Inputs
+    ------
+    request : HttpRequest
+        Incoming Django request (unused except for view signature).
+    frb_name : str
+        FRB identifier (expects format 'FRBYYYYXXXX...'), used to infer
+        the year directory and filename.
+
+    Returns
+    -------
+    HttpResponse
+        Binary image response (PNG/JPEG/GIF) containing the path cutout.
+        Raises Http404 if the FRB name is malformed, the directory/file
+        does not exist, or the GitHub payload cannot be decoded. 
     """
 
     OWNER  = "CHIMEFRB"
@@ -1048,6 +1065,22 @@ def path_cutout_proxy(request, frb_name: str) -> HttpResponse:
 def path_cutout_zoomin_proxy(request, frb_name: str) -> HttpResponse:
     """
     Serve a 'zoom in' cutout from the CHIME path private repo.
+
+    Inputs
+    ------
+    request : HttpRequest
+        Incoming Django request (unused except for view signature).
+    frb_name : str
+        FRB identifier (expects format 'FRBYYYYXXXX...'), used to infer
+        the year directory and to locate the zoom-in image.
+
+    Returns
+    -------
+    HttpResponse
+        Binary PNG image response containing the zoom-in cutout.
+        Raises Http404 if the FRB name is malformed, no matching zoom-in
+        file is found, or the GitHub payload cannot be decoded.
+
     """
     OWNER  = "CHIMEFRB"
     REPO   = "chime-path"
