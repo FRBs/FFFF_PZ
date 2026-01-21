@@ -43,6 +43,16 @@ def summary_table():
     POx = [frb.host.P_Ox if frb.host else np.nan for frb in all_frbs]
     frbs['POx'] = POx
 
+    PUx = []
+    for frb in all_frbs:
+        path_values, galaxies, path_objs = frb.get_Path_values()
+        if len(path_values) == 0:
+            PUx.append(1.0)  
+            continue
+        s = float(np.nansum(path_values))
+        PUx.append(max(0.0, 1.0 - s))
+    frbs['PUx'] = PUx
+
     # Redshifts
     z = [frb.host.redshift if frb.host else np.nan for frb in all_frbs]
     frbs['z'] = z
@@ -65,6 +75,14 @@ def summary_table():
 
     cand_gal_redshifts = [get_top_two_pox_gal_attr(frb,attr="redshift") for frb in all_frbs]
     frbs['cand_gal_redshifts'] = cand_gal_redshifts
+
+
+    #Host RA/Dec
+    cand_gal_ras  = [get_top_two_pox_gal_attr(frb, attr="ra")  for frb in all_frbs]
+    frbs["cand_ra"] = cand_gal_ras
+
+    cand_gal_decs = [get_top_two_pox_gal_attr(frb, attr="dec") for frb in all_frbs]
+    frbs["cand_dec"] = cand_gal_decs
 
     # Return
     return frbs
