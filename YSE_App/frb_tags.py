@@ -96,6 +96,7 @@ def chk_all_criteria(frb):
     criteria['PUx'] = [] # True if P(U|x) > max_PUx;  used for NeedImage and Unseen
     criteria['too_faint'] = [] # True if mag of top P(O|x) > mr_max
     criteria['skip_need_image'] = [] # True if skip_need_image is set
+    criteria['override_blocking'] = []  # Track override flag
 
     # Grab the Sample object
     for frb_tag in frb.frb_tags.all():
@@ -124,6 +125,12 @@ def chk_all_criteria(frb):
             criteria['skip_need_image'].append(True)
         else:
             criteria['skip_need_image'].append(False)
+
+        # Override blocking statuses?
+        if sample.override_blocking_statuses is not None and sample.override_blocking_statuses:
+            criteria['override_blocking'].append(True)
+        else:
+            criteria['override_blocking'].append(False)
 
         # PATH and redshift items
         if frb.host is not None:

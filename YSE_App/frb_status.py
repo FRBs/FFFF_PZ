@@ -78,6 +78,58 @@ def set_status(frb):
     log_message += msg
     PATH_run = False if frb.host is None else True
 
+    # #########################################################
+    # CHIME-ToO or other override tags
+    # Check if ANY tag has override_blocking_statuses enabled
+    # #########################################################
+    if np.any(criteria['override_blocking']):
+        log_message += "OVERRIDE ACTIVE-"
+
+        # Check for pending imaging follow-up
+        if FRBFollowUpRequest.objects.filter(transient=frb, mode='imaging').exists():
+            frb.status = TransientStatus.objects.get(name='ImagePending')
+            frb.save()
+            return
+
+        # Check for completed imaging
+        if FRBFollowUpObservation.objects.filter(transient=frb, success=True, mode='imaging').exists():
+            frb.status = TransientStatus.objects.get(name='RunDeepPATH')
+            frb.save()
+            return
+
+        # Check for pending spectroscopy follow-up
+        if FRBFollowUpRequest.objects.filter(transient=frb, mode__in=['longslit','mask']).exists():
+            frb.status = TransientStatus.objects.get(name='SpectrumPending')
+            frb.save()
+            return
+
+        # Check for completed spectroscopy
+        if FRBFollowUpObservation.objects.filter(transient=frb, success=True, mode__in=['longslit','mask']).exists():
+            frb.status = TransientStatus.objects.get(name='GoodSpectrum')
+            frb.save()
+            return
+
+        # Determine if we need imaging or spectroscopy
+        # NeedImage: No host identified yet
+        if frb.host is None:
+            frb.status = TransientStatus.objects.get(name='NeedImage')
+            frb.save()
+            return
+
+        # NeedSpectrum: Has host with acceptable P(O|x)
+        # Use EBV criteria (skip bright_star check)
+        good = criteria['EBV']
+        good_idx = np.where(good)[0]
+        if len(good_idx) > 0 and np.any(criteria['POx'][good_idx]):
+            frb.status = TransientStatus.objects.get(name='NeedSpectrum')
+            frb.save()
+            return
+
+        # Default: Need deeper imaging if host exists but P(O|x) not satisfied
+        frb.status = TransientStatus.objects.get(name='NeedImage')
+        frb.save()
+        return
+
     # Is the top candidate too faint?
     r_too_faint = False  
     if frb.host is not None:
