@@ -39,6 +39,8 @@ urlpatterns = [
     re_path(r'^frb_dashboard/$', views.frb_dashboard, name='frb_dashboard'),
     re_path(r'^frb_transient_detail/(?P<slug>.*)/$', views.frb_transient_detail, name='frb_transient_detail'),
     re_path(r'^frb_followup_resource/(?P<slug>.*)/$', views.frb_followup_resource, name='frb_followup_resource'),
+    re_path(r"^proxy/path-cutout/(?P<frb_name>FRB\d{8}[A-Z]?)/$",views.path_cutout_proxy,name="path_cutout_proxy",),
+    re_path(r"^proxy/path-cutout-zoomin/(?P<frb_name>[^/]+)/$", views.path_cutout_zoomin_proxy, name="path_cutout_zoomin_proxy"),
 
     # API
     re_path(r'^add_frb_galaxy/', data_utils.add_frb_galaxy, name='add_frb_galaxy'),

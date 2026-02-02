@@ -62,7 +62,13 @@ from urllib.parse import unquote
 from .common.utilities import date_to_mjd, mjd_to_date
 from django.views.generic.list import ListView
 
+import re
+from typing import Optional
+import logging
+
 # Create your views here.
+
+
 
 def is_ajax(request):
     return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
@@ -938,6 +944,241 @@ def download_targets_and_finders(request, telescope, obs_date):
     return response
 
 
+
+
+
+log = logging.getLogger(__name__)
+
+def path_cutout_proxy(request, frb_name: str) -> HttpResponse:
+    """
+    Serve the path cutout '<FRBNAME>_PATH.png' from the CHIME path repo.
+
+    Expected format:
+      chime-path/chime_path/<YEAR>/<FRBNAME>/<FRBNAME>_PATH.png
+
+    Django view that proxies a CHIME path cutout image from GitHub.
+
+    Inputs
+    ------
+    request : HttpRequest
+        Incoming Django request (unused except for view signature).
+    frb_name : str
+        FRB identifier (expects format 'FRBYYYYXXXX...'), used to infer
+        the year directory and filename.
+
+    Returns
+    -------
+    HttpResponse
+        Binary image response (PNG/JPEG/GIF) containing the path cutout.
+        Raises Http404 if the FRB name is malformed, the directory/file
+        does not exist, or the GitHub payload cannot be decoded. 
+    """
+
+    OWNER  = "CHIMEFRB"
+    REPO   = "chime-path"
+    PREFIX = "chime_path"  # underscore
+
+    # Extract year from FRB name (expects FRBYYYY...)
+    m = re.search(r"FRB(\d{4})", frb_name or "")
+    if not m:
+        raise Http404("Bad FRB name")
+
+    year = m.group(1)
+    dir_path  = f"{PREFIX}/{year}/{frb_name}"
+    file_name = f"{frb_name}_PATH.png"
+    file_path = f"{dir_path}/{file_name}"
+
+    file_url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{file_path}?ref=main"
+    dir_url  = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{dir_path}?ref=main"
+
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    tok = getattr(settings, "GITHUB_TOKEN", None)
+    if tok:
+        headers["Authorization"] = f"Bearer {tok}"
+
+    # Ensure directory exists
+    try:
+        r_dir = requests.get(dir_url, headers=headers, timeout=10)
+    except requests.RequestException:
+        raise Http404("Path directory fetch error")
+    if r_dir.status_code != 200:
+        raise Http404("Path directory not found")
+
+
+    try:
+        r_file = requests.get(file_url, headers=headers, timeout=10)
+    except requests.RequestException:
+        raise Http404("Path file fetch error")
+    if r_file.status_code != 200:
+        raise Http404("Path cutout not found")
+
+    data = r_file.json()
+
+    blob = None
+    if data.get("encoding") == "base64" and data.get("content"):
+        try:
+            cleaned = "".join(str(data["content"]).splitlines())
+            blob = base64.b64decode(cleaned)
+        except Exception:
+            blob = None
+
+    if blob is None and data.get("download_url"):
+        try:
+            r_raw = requests.get(data["download_url"], headers=headers, timeout=10)
+            if r_raw.status_code == 200:
+                blob = r_raw.content
+        except requests.RequestException:
+            pass
+
+    if blob is None and data.get("sha"):
+        blob_url = f"https://api.github.com/repos/{OWNER}/{REPO}/git/blobs/{data['sha']}"
+        try:
+            r_blob = requests.get(
+                blob_url,
+                headers={**headers, "Accept": "application/vnd.github.raw"},
+                timeout=10,
+            )
+            if r_blob.status_code == 200:
+                blob = r_blob.content
+        except requests.RequestException:
+            pass
+
+    if not blob:
+        raise Http404("Unexpected payload")
+
+    # Infer content type from filename (default PNG)
+    name = (data.get("name") or "").lower()
+    ctype = "image/png"
+    if name.endswith(".jpg") or name.endswith(".jpeg"):
+        ctype = "image/jpeg"
+    elif name.endswith(".gif"):
+        ctype = "image/gif"
+
+    resp = HttpResponse(blob, content_type=ctype)
+    resp["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
+def path_cutout_zoomin_proxy(request, frb_name: str) -> HttpResponse:
+    """
+    Serve a 'zoom in' cutout from the CHIME path private repo.
+
+    Inputs
+    ------
+    request : HttpRequest
+        Incoming Django request (unused except for view signature).
+    frb_name : str
+        FRB identifier (expects format 'FRBYYYYXXXX...'), used to infer
+        the year directory and to locate the zoom-in image.
+
+    Returns
+    -------
+    HttpResponse
+        Binary PNG image response containing the zoom-in cutout.
+        Raises Http404 if the FRB name is malformed, no matching zoom-in
+        file is found, or the GitHub payload cannot be decoded.
+
+    """
+    OWNER  = "CHIMEFRB"
+    REPO   = "chime-path"
+    PREFIX = "chime_path"  # underscore, not hyphen
+
+    # Parse year from FRB name (expects FRBYYYY...)
+    m = re.search(r"FRB(\d{4})", frb_name or "")
+    if not m:
+        raise Http404("Bad FRB name")
+
+    year = m.group(1)
+    dir_path = f"{PREFIX}/{year}/{frb_name}"
+    dir_url  = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{dir_path}?ref=main"
+
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    tok = getattr(settings, "GITHUB_TOKEN", None)
+    if tok:
+        headers["Authorization"] = f"Bearer {tok}"
+
+
+    try:
+        r_dir = requests.get(dir_url, headers=headers, timeout=10)
+    except requests.RequestException:
+        raise Http404("Zoom-in directory fetch error")
+
+    if r_dir.status_code != 200:
+        raise Http404("Zoom-in directory not found")
+
+    items = r_dir.json()
+    if not isinstance(items, list):
+        raise Http404("Unexpected directory payload")
+
+    matches = [
+        it for it in items
+        if isinstance(it, dict)
+        and it.get("type") == "file"
+        and isinstance(it.get("name"), str)
+        and it["name"].lower().endswith("zoomin.png")
+    ]
+    if not matches:
+        raise Http404("Zoom-in cutout not found")
+
+    matches.sort(key=lambda it: it["name"].lower())
+    file_item = matches[0]
+
+    file_url = file_item.get("url") or f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{file_item['path']}?ref=main"
+    try:
+        r_file = requests.get(file_url, headers=headers, timeout=10)
+    except requests.RequestException:
+        raise Http404("Zoom-in fetch error")
+
+    if r_file.status_code != 200:
+        raise Http404("Zoom-in cutout not found")
+
+    data = r_file.json()
+
+    blob = None
+
+    if data.get("encoding") == "base64" and data.get("content"):
+        try:
+            cleaned = "".join(str(data["content"]).splitlines())
+            blob = base64.b64decode(cleaned)
+        except Exception:
+            blob = None
+
+    if blob is None and data.get("download_url"):
+        try:
+            r_raw = requests.get(data["download_url"], headers=headers, timeout=10)
+            if r_raw.status_code == 200:
+                blob = r_raw.content
+        except requests.RequestException:
+            pass
+
+    if blob is None and data.get("sha"):
+        blob_url = f"https://api.github.com/repos/{OWNER}/{REPO}/git/blobs/{data['sha']}"
+        try:
+            r_blob = requests.get(
+                blob_url,
+                headers={**headers, "Accept": "application/vnd.github.raw"},
+                timeout=10,
+            )
+            if r_blob.status_code == 200:
+                blob = r_blob.content
+        except requests.RequestException:
+            pass
+
+    if not blob:
+        raise Http404("Unexpected payload")
+
+    # 5) Serve PNG with basic caching
+    resp = HttpResponse(blob, content_type="image/png")
+    resp["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
 @login_required
 def transient_detail(request, slug):
 
@@ -952,6 +1193,7 @@ def transient_detail(request, slug):
         #return redirect('/transient_detail/%s/'%transient[0].slug)
         return HttpResponseRedirect(reverse_lazy('transient_detail',kwargs={'slug':transient[0].slug}))
     logs = Log.objects.filter(transient=transient[0].id)
+
 
     obs = None
     if len(transient) == 1:
@@ -1053,7 +1295,20 @@ def transient_detail(request, slug):
 
         date = datetime.datetime.now(tz=pytz.utc)
         date_format='%m/%d/%Y %H:%M:%S'
+
+        # Build GitHub browse link to the directory holding the cutout
+        browse_url = None
+        m = re.search(r"FRB(\d{4})", transient_obj.name or "")
+        if m:
+            year = m.group(1)
+            browse_url = (
+                f"https://github.com/CHIMEFRB/chime-path/tree/main/"
+                f"chime_path/{year}/{transient_obj.name}"
+                )      
+
+        print("browse_url:", browse_url)  # will appear in server logs/stdout
         
+          
         spectra = SpectraService.GetAuthorizedTransientSpectrum_ByUser_ByTransient(request.user, transient_id, includeBadData=True)
         context = {
             'transient':transient_obj,
@@ -1083,7 +1338,8 @@ def transient_detail(request, slug):
             'classical_resource_form':classical_resource_form,
             'too_resource_form':too_resource_form,
             'new_comment':has_new_comment,
-            'transients_near_host':transients_near_host
+            'transients_near_host':transients_near_host,
+            'path_github_browse_url': browse_url,
         }
 
         if transient_followup_form.fields["valid_start"].initial:
