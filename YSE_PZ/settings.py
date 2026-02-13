@@ -13,7 +13,7 @@ import os
 from configparser import RawConfigParser
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-configFile = os.path.join(__location__, "public_settings.ini")
+configFile = os.path.join(__location__, "settings.ini")
 
 config = RawConfigParser()
 config.read(configFile)
