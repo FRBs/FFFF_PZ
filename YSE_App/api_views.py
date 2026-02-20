@@ -508,6 +508,11 @@ class FRBTagViewSet(custom_viewsets.ListCreateRetrieveUpdateViewSet):
     serializer_class = FRBTagSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
+class FRBGiveUpViewSet(custom_viewsets.ListCreateRetrieveUpdateViewSet):
+    queryset = FRBGiveUp.objects.all()
+    serializer_class = FRBGiveUpSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
 class FRBGalaxyViewSet(custom_viewsets.ListCreateRetrieveUpdateViewSet):
     queryset = FRBGalaxy.objects.all()
     serializer_class = FRBGalaxySerializer

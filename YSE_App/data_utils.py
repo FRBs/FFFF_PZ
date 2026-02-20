@@ -2043,6 +2043,88 @@ def modify_frbs(request):
 
 @csrf_exempt
 @login_or_basic_auth_required
+def sync_giveups(request):
+    """
+    Sync the FRBGiveUp table with an input table of FRBs.
+
+    Entries in the input table that are not in the DB are added.
+    Entries in the DB that are not in the input table are removed.
+
+    The request must include:
+      - table (str): a JSON table with columns:
+            name (str) -- TNS name of the FRB
+            reason (str) -- Reason for giving up
+            date (str) -- Date of giving up (ISO format)
+
+    Args:
+        request (requests.request):
+            Request from outside FFFF-PZ
+
+    Returns:
+        JsonResponse:
+    """
+
+    # Parse the data into a dict
+    data = JSONParser().parse(request)
+
+    # Deal with credentials
+    auth_method, credentials = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+    credentials = base64.b64decode(credentials.strip()).decode('utf-8')
+    username, password = credentials.split(':', 1)
+    user = auth.authenticate(username=username, password=password)
+
+    # Prep
+    giveup_tbl = pandas.read_json(data['table'])
+    msg = ''
+
+    # Add new entries
+    for ss in range(len(giveup_tbl)):
+        irow = giveup_tbl.iloc[ss]
+        if FRBGiveUp.objects.filter(name=irow['name']).exists():
+            # Update reason and date
+            obj = FRBGiveUp.objects.get(name=irow['name'])
+            obj.reason = irow['reason']
+            obj.date = irow['date']
+            obj.modified_by = user
+            obj.save()
+            msg += f"Updated {irow['name']}\n"
+        else:
+            obj = FRBGiveUp(
+                name=irow['name'],
+                reason=irow['reason'],
+                date=irow['date'],
+                created_by=user,
+                modified_by=user,
+            )
+            obj.save()
+            msg += f"Added {irow['name']}\n"
+
+    # Remove entries not in the input table
+    input_names = giveup_tbl['name'].tolist()
+    for obj in FRBGiveUp.objects.all():
+        if obj.name not in input_names:
+            msg += f"Removed {obj.name}\n"
+            # Grab the FRB
+            frb = FRBTransient.objects.get(name=obj.name)
+            # Delete the entry
+            obj.delete()
+            # Update status
+            frb_status.set_status(frb)
+
+    # Update status for all input FRBs
+    for name in input_names:
+        try:
+            frb = FRBTransient.objects.get(name=name)
+            frb_status.set_status(frb)
+            msg += f"Updated status for {name}\n"
+        except ObjectDoesNotExist:
+            msg += f"{name} not in FRBTransient table, skipping status update\n"
+
+    # Return
+    return JsonResponse({"message": f"{msg}"}, status=201)
+
+@csrf_exempt
+@login_or_basic_auth_required
 def addmodify_criteria(request):
     """
     Add or modify a set of criteria for
@@ -2373,7 +2455,7 @@ def chk_frb(request):
 @csrf_exempt
 @login_or_basic_auth_required
 def get_path(request):
-    """ Return a series of diagnostics on an` FRB
+    """ Get the PATH information for a given FRB
 
     Input data includes:
         - name (str): TNS Name of the FRBTransient

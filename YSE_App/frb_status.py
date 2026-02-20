@@ -52,6 +52,9 @@ all_status = [\
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
         # Else, take primary
+    'GiveUp', # FRB has been given up on
+        # Reason for giving up
+        # Date of giving up
 ]
 
 
@@ -72,6 +75,7 @@ def set_status(frb):
     from YSE_App.models import Path
     from YSE_App.models import FRBFollowUpObservation
     from YSE_App.models import FRBFollowUpRequest
+    from YSE_App.models import FRBGiveUp
 
     # Check Criteria
     criteria, msg = frb_tags.chk_all_criteria(frb)
@@ -146,7 +150,18 @@ def set_status(frb):
             if mag > 21.0:
                 r_too_faint = True
 
+    # #########################################################
     # Run in reverse order of completion
+    # #########################################################
+
+    # #########################################################
+    # #########################################################
+    # Give Up?
+    # #########################################################
+    if FRBGiveUp.objects.filter(name=frb.name).exists():
+        frb.status = TransientStatus.objects.get(name='GiveUp')
+        frb.save()
+        return
 
     # #########################################################
     # #########################################################

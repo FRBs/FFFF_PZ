@@ -358,3 +358,17 @@ class Path(BaseModel):
 
         # Return
         return gpd.mag
+
+
+class FRBGiveUp(BaseModel):
+    """ Model for FRBs that have been given up on """
+
+    # FRB name
+    name = models.CharField(max_length=64, unique=True)
+    # Reason for giving up
+    reason = models.TextField()
+    # Date of giving up
+    date = models.DateTimeField()
+
+    def __str__(self):
+        return self.name
