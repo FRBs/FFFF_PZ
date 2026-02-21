@@ -65,6 +65,7 @@ class FRBSampleCriteria(BaseModel):
     skip_need_image = models.BooleanField(null=True, blank=True)
 
     # Override blocking statuses (BrightStar, TooDusty, AmbiguousHost)
+    #   Mainly for ToO tag
     override_blocking_statuses = models.BooleanField(null=True, blank=True, default=False)
 
 

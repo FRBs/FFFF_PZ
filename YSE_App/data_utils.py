@@ -2504,7 +2504,7 @@ def get_path(request):
 @csrf_exempt
 @login_or_basic_auth_required
 def update_tags(request):
-    """ Return a series of diagnostics on an` FRB
+    """ Update the tags for a given FRB
 
     Input data includes:
         - name (str): TNS Name of the FRBTransient
