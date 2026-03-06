@@ -2028,8 +2028,6 @@ def modify_frbs(request):
             
         # dict me
         idict = ifrb.to_dict()
-        print(f"idict in modify_frbs: {idict}")
-        msg += f"{idict}\n"
 
         # Modify
         _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
@@ -2114,13 +2112,14 @@ def sync_giveups(request):
             frb_status.set_status(frb)
 
     # Update status for all input FRBs
-    for name in input_names:
+    for ss in range(len(giveup_tbl)):
+        irow = giveup_tbl.iloc[ss]
         try:
-            frb = FRBTransient.objects.get(name=name)
+            frb = FRBTransient.objects.get(name=irow['name'])
             frb_status.set_status(frb)
-            msg += f"Updated status for {name}\n"
+            msg += f"Updated status for {irow['name']}\n"
         except ObjectDoesNotExist:
-            msg += f"{name} not in FRBTransient table, skipping status update\n"
+            msg += f"{irow['name']} not in FRBTransient table, skipping status update\n"
 
     # Return
     return JsonResponse({"message": f"{msg}"}, status=201)
