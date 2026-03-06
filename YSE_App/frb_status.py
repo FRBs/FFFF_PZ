@@ -85,6 +85,21 @@ def set_status(frb):
     log_message += msg
     PATH_run = False if frb.host is None else True
 
+    # Is the top candidate too faint?
+    r_too_faint = False  
+    if frb.host is not None:
+        POx_values, galaxies, _ = frb.get_Path_values()
+        argsrt = np.argsort(POx_values)
+        pri_gal = galaxies[argsrt[-1]]  # Primary galaxy
+        # Check the top candidate magnitude
+        rfilter, mag = pri_gal.FilterMagString()
+        mag = float(mag)
+        if 'Blanco' in rfilter or 'DECam' in rfilter:
+            if mag > 23.0:
+                r_too_faint = True
+        elif 'Pan-STARRS' in rfilter:
+            if mag > 21.0:
+                r_too_faint = True
 
     # #########################################################
     # Run in reverse order of completion
