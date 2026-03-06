@@ -1,3 +1,6 @@
+import logging
+import warnings
+
 from autoslug import AutoSlugField
 from auditlog.registry import auditlog
 
@@ -23,6 +26,8 @@ from astroquery import irsa_dust
 
 # FRB items
 from ne2001 import density
+
+logger = logging.getLogger(__name__)
 
 class FRBTransient(BaseModel):
     """ FRBTransient model
@@ -296,23 +301,54 @@ class FRBTransient(BaseModel):
 
 auditlog.register(FRBTransient)
 
+class FRBIngestionError(Exception):
+    """Custom exception for FRB ingestion failures."""
+    pass
+
+
 @receiver(models.signals.post_save, sender=FRBTransient)
 def execute_after_save(sender, instance, created, *args, **kwargs):
+    """
+    Post-save signal handler for FRBTransient.
+
+    Calculates and sets mw_ebv (from IRSA), DM_ISM (from NE2001),
+    and determines the FRB status. If critical operations fail
+    (IRSA query or DM_ISM calculation), the FRB is deleted and
+    an exception is raised to signal the failure.
+    """
 
     # Add a few bits and pieces including tags
     if created:
+        frb_name = instance.name
 
         # Galactic E(B-V) -- Needs to come before tagging
-        c = SkyCoord(ra=instance.ra, dec=instance.dec, unit='deg')
-        instance.mw_ebv = irsa_dust.IrsaDust.get_query_table(c)['ext SandF mean'][0]
+        try:
+            c = SkyCoord(ra=instance.ra, dec=instance.dec, unit='deg')
+            instance.mw_ebv = irsa_dust.IrsaDust.get_query_table(c)['ext SandF mean'][0]
+        except Exception as e:
+            error_msg = f"Failed to query IRSA for mw_ebv: {e}"
+            logger.error(f"{frb_name}: {error_msg}")
+            # Delete the incomplete FRB and raise exception
+            instance.delete()
+            raise FRBIngestionError(f"{frb_name}: {error_msg}")
 
         # DM ISM
-        instance.DM_ISM = instance.calc_DM_ISM()
+        try:
+            instance.DM_ISM = instance.calc_DM_ISM()
+        except Exception as e:
+            error_msg = f"Failed to calculate DM_ISM: {e}"
+            logger.error(f"{frb_name}: {error_msg}")
+            # Delete the incomplete FRB and raise exception
+            instance.delete()
+            raise FRBIngestionError(f"{frb_name}: {error_msg}")
 
-        # Set status
-        frb_status.set_status(instance)
+        # Set status - this is less critical, log warning but don't fail
+        try:
+            frb_status.set_status(instance)
+        except Exception as e:
+            logger.warning(f"{frb_name}: Failed to set status: {e}")
 
-        # Save
+        # Save the updated values
         instance.save()
 
 class Path(BaseModel):

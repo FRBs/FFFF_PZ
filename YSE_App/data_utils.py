@@ -1967,11 +1967,11 @@ def ingest_frbs(request):
     frb_tbl = pandas.read_json(data['table'])
 
     # Run
-    code, msg = frb_init.add_df_to_db(frb_tbl, user,
-                                      delete_existing=data['delete'])
+    code, response_data = frb_init.add_df_to_db(frb_tbl, user,
+                                                delete_existing=data['delete'])
 
-    # Return
-    return JsonResponse({"message":f"{msg}"}, status=code)
+    # Return structured response
+    return JsonResponse(response_data, status=code)
 
 
 @csrf_exempt
