@@ -2116,10 +2116,12 @@ def sync_giveups(request):
         irow = giveup_tbl.iloc[ss]
         try:
             frb = FRBTransient.objects.get(name=irow['name'])
-            frb_status.set_status(frb)
-            msg += f"Updated status for {irow['name']}\n"
         except ObjectDoesNotExist:
             msg += f"{irow['name']} not in FRBTransient table, skipping status update\n"
+            continue
+        # Update status
+        frb_status.set_status(frb)
+        msg += f"Updated status for {irow['name']}\n"
 
     # Return
     return JsonResponse({"message": f"{msg}"}, status=201)
