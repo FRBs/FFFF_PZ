@@ -256,6 +256,12 @@ def set_status(frb):
         frb.status = TransientStatus.objects.get(name='SpectrumPending')
         frb.save()
         return
+
+    # #########################################################
+    # Need Secondary?
+    # #########################################################
+    if flg_need_secondary:
+        return
     
     # #########################################################
     # Good Spectrum
@@ -266,12 +272,6 @@ def set_status(frb):
             mode__in=['longslit','mask']).exists():
         frb.status = TransientStatus.objects.get(name='GoodSpectrum')
         frb.save()
-        return
-
-    # #########################################################
-    # Need Secondary?
-    # #########################################################
-    if flg_need_secondary:
         return
 
     # #########################################################
