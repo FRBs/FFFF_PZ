@@ -34,6 +34,7 @@ class FRBGalaxy(BaseModel):
     redshift = models.FloatField(null=True, blank=True)
     redshift_err = models.FloatField(null=True, blank=True)
     # Qualty of the redshift
+    #   0: Junk
     #   1: 100% secure
     redshift_quality = models.IntegerField(null=True, blank=True)
     # Source of the redshift

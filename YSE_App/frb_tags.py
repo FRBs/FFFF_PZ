@@ -213,12 +213,14 @@ def chk_all_criteria(frb):
                 # Check redshift
                 if gal.redshift is None:
                     has_redshift.append(False)
+                elif gal.redshift < 0:
+                    has_redshift.append(False)
                 else:
                     has_redshift.append(True)
                 # Check the redshift source
                 tmp_ok = False
                 for gd_source in good_z_sources:
-                    if gd_source in gal.redshift_source:
+                    if gd_source in gal.redshift_source and gal.redshift_quality == 1:
                         tmp_ok = True
                 source_ok.append(tmp_ok)
 
