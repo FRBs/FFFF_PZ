@@ -20,3 +20,7 @@ urlpatterns = [
 	re_path(r'^f4pz/', include('YSE_App.urls')),
 	re_path(r'^f4pz/admin/', admin.site.urls),
 ]
+
+# For non-Canfar
+#re_path(r'', include('YSE_App.urls')),
+#re_path(r'^admin/', admin.site.urls),
