@@ -75,6 +75,10 @@ class FRBTransient(BaseModel):
 
     # Repeater?
     repeater = models.BooleanField(default=False, blank=True)
+    # Repeater name (e.g. R155)
+    repeater_name = models.CharField(max_length=64, null=True, blank=True)
+    # Event IDs of associated repeater events
+    repeater_ids = models.JSONField(default=list, blank=True)
     # Rotation measure
     RM = models.FloatField(null=True, blank=True)
     # S.N
@@ -394,3 +398,17 @@ class Path(BaseModel):
 
         # Return
         return gpd.mag
+
+
+class FRBGiveUp(BaseModel):
+    """ Model for FRBs that have been given up on """
+
+    # FRB name
+    name = models.CharField(max_length=64, unique=True)
+    # Reason for giving up
+    reason = models.TextField()
+    # Date of giving up
+    date = models.DateTimeField()
+
+    def __str__(self):
+        return self.name

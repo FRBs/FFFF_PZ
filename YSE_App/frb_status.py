@@ -11,7 +11,9 @@ from IPython import embed
 all_status = [\
     'Unassigned', # Does not meet the criteria for FFFF FollowUp
     'BrightStar', # Localization is too close to a very bright star
+        # Overridden by any override_blocking_statuses tag
     'TooDusty', # Sightline exceeds E(B-V) threshold
+        # Overridden by any override_blocking_statuses tag
     'RunPublicPATH', # Needs to be run through PATH with public data
         # P_Ux is None
         # At least one frb_tag is in the list of run_public_path entries below
@@ -43,6 +45,7 @@ all_status = [\
         #   is fainter than the maximum(mr_max) for the sample/surveys
     'AmbiguousHost',  # Host is considered too ambiguous for further follow-up
         #  For primary-only, it isn't satisfied and for top two, the top two P(O|x) are not satisfied
+        # Overridden by any override_blocking_statuses tag
     'UnseenHost',  # Even with deep imaging, no compelling host was found
         # P(U|x) is set
         # deep PATH was run
@@ -52,6 +55,9 @@ all_status = [\
         # P(O|x) of top 2 > P_Ox_min
         # If Primary does not exceed min_POx, then the top two redshifts must be nearly the same
         # Else, take primary
+    'GiveUp', # FRB has been given up on
+        # Reason for giving up
+        # Date of giving up
 ]
 
 
@@ -72,6 +78,7 @@ def set_status(frb):
     from YSE_App.models import Path
     from YSE_App.models import FRBFollowUpObservation
     from YSE_App.models import FRBFollowUpRequest
+    from YSE_App.models import FRBGiveUp
 
     # Check Criteria
     criteria, msg = frb_tags.chk_all_criteria(frb)
@@ -94,13 +101,24 @@ def set_status(frb):
             if mag > 21.0:
                 r_too_faint = True
 
+    # #########################################################
     # Run in reverse order of completion
+    # #########################################################
+
+    # #########################################################
+    # #########################################################
+    # Give Up?
+    # #########################################################
+    if FRBGiveUp.objects.filter(name=frb.name).exists():
+        frb.status = TransientStatus.objects.get(name='GiveUp')
+        frb.save()
+        return
 
     # #########################################################
     # #########################################################
     # Bright star?
     # #########################################################
-    if np.all(criteria['bright_star']):
+    if np.all(criteria['bright_star']) and not np.any(criteria['override_blocking']):
         frb.status = TransientStatus.objects.get(name='BrightStar')
         frb.save()
         return
@@ -109,7 +127,8 @@ def set_status(frb):
     # #########################################################
     # Too Dusty??
     # #########################################################
-    if np.all(np.invert(criteria['bright_star']) & np.invert(criteria['EBV'])):
+    if np.all(np.invert(criteria['bright_star']) & np.invert(criteria['EBV']) &
+        np.invert(criteria['override_blocking'])):
         frb.status = TransientStatus.objects.get(name='TooDusty')
         frb.save()
         return
@@ -117,8 +136,9 @@ def set_status(frb):
     # #########################################################
     # Run Public PATH
     # #########################################################
-    if np.any(np.invert(criteria['bright_star']) & criteria['EBV'] & \
-        criteria['run_public_PATH']):
+    analyze = (np.invert(criteria['bright_star']) & criteria['EBV']) | \
+        criteria['override_blocking']
+    if np.any(analyze & criteria['run_public_PATH']):
         if not PATH_run:
             frb.status = TransientStatus.objects.get(name='RunPublicPATH')
             frb.save()
@@ -131,8 +151,7 @@ def set_status(frb):
     # #########################################################
     # Grab the sample that satisfy the criteria so far
     # #########################################################
-    good = np.invert(criteria['bright_star']) & criteria['EBV'] & \
-        criteria['run_public_PATH']
+    good = analyze & criteria['run_public_PATH']
     good_idx = np.where(good)[0]
 
     # #########################################################
@@ -186,7 +205,8 @@ def set_status(frb):
     # #########################################################
     # Ambiguous host
     # #########################################################
-    if np.all(np.invert(criteria['POx'][good_idx])):
+    if np.all(np.invert(criteria['POx'][good_idx]) & 
+        np.invert(criteria['override_blocking'][good_idx])):
         frb.status = TransientStatus.objects.get(name='AmbiguousHost')
         frb.save()
         return
@@ -236,6 +256,12 @@ def set_status(frb):
         frb.status = TransientStatus.objects.get(name='SpectrumPending')
         frb.save()
         return
+
+    # #########################################################
+    # Need Secondary?
+    # #########################################################
+    if flg_need_secondary:
+        return
     
     # #########################################################
     # Good Spectrum
@@ -246,12 +272,6 @@ def set_status(frb):
             mode__in=['longslit','mask']).exists():
         frb.status = TransientStatus.objects.get(name='GoodSpectrum')
         frb.save()
-        return
-
-    # #########################################################
-    # Need Secondary?
-    # #########################################################
-    if flg_need_secondary:
         return
 
     # #########################################################

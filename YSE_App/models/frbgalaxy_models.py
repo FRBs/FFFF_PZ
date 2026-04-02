@@ -34,6 +34,7 @@ class FRBGalaxy(BaseModel):
     redshift = models.FloatField(null=True, blank=True)
     redshift_err = models.FloatField(null=True, blank=True)
     # Qualty of the redshift
+    #   0: Junk
     #   1: 100% secure
     redshift_quality = models.IntegerField(null=True, blank=True)
     # Source of the redshift
@@ -95,7 +96,7 @@ class FRBGalaxy(BaseModel):
 
         # Take the first one we have
         inst_key = list(pdict.keys())[0]
-        ifilter = pdict[inst_key].keys()[0]
+        ifilter = list(pdict[inst_key].keys())[0]
         return f'{inst_key}-{ifilter}', '%.2f'%(pdict[inst_key][ifilter])
 
     def POxString(self):

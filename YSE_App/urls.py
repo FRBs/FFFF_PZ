@@ -56,6 +56,7 @@ urlpatterns = [
     re_path(r'^remove_z/', data_utils.remove_z, name='remove_z'),
     re_path(r'^ingest_frbs/', data_utils.ingest_frbs, name='ingest_frbs'),
     re_path(r'^modify_frbs/', data_utils.modify_frbs, name='modify_frbs'),
+    re_path(r'^sync_giveups/', data_utils.sync_giveups, name='sync_giveups'),
     re_path(r'^rm_frb/', data_utils.rm_frb, name='rm_frb'),
     re_path(r'^addmodify_criteria/', data_utils.addmodify_criteria, name='addmodify_criteria'),
     re_path(r'^add_band/', data_utils.add_band, name='add_band'),
@@ -293,6 +294,7 @@ router.register(r'frbtransients', api_views.FRBTransientViewSet)
 router.register(r'frbsurvey', api_views.FRBSurveyViewSet)
 router.register(r'frbtags', api_views.FRBTagViewSet)
 router.register(r'frbgalaxies', api_views.FRBGalaxyViewSet)
+router.register(r'giveups', api_views.FRBGiveUpViewSet)
 router.register(r'paths', api_views.PathViewSet)
 router.register(r'frbrequests', api_views.FRBFollowUpRequestViewSet)
 router.register(r'frbresources', api_views.FRBFollowUpResourceViewSet)

@@ -22,6 +22,14 @@ class FRBGalaxySerializer(serializers.HyperlinkedModelSerializer):
         model = FRBGalaxy
         fields = "__all__"
         
+class FRBGiveUpSerializer(serializers.HyperlinkedModelSerializer):
+    """ Serializer for the FRBGiveUp table
+    """
+
+    class Meta:
+        model = FRBGiveUp
+        fields = "__all__"
+
 class PathSerializer(serializers.HyperlinkedModelSerializer):
     """ Serializer for the PATH table
     """
