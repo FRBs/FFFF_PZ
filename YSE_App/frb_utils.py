@@ -80,6 +80,7 @@ def addmodify_obj(iclass, data:dict, user):
     for key in data.keys():
         if key in ['name', 'created_by', 'created_date']:
             continue
+        print(f"Setting {key} to {data[key]}")
         try:
             setattr(obj,key,data[key])
         except:

@@ -2028,6 +2028,7 @@ def modify_frbs(request):
             
         # dict me
         idict = ifrb.to_dict()
+        print(f"Using this dict: {idict}")
 
         # Modify
         _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
