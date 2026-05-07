@@ -2028,10 +2028,11 @@ def modify_frbs(request):
             
         # dict me
         idict = ifrb.to_dict()
-        print(f"Using this dict: {idict}")
+        msg += f"Using this dict: {idict}\n"
 
         # Modify
-        _ = frb_utils.addmodify_obj(FRBTransient, idict, user)
+        amsg = frb_utils.addmodify_obj(FRBTransient, idict, user)
+
         msg += f"Modified {ifrb['name']}\n"
 
         # Remove PATH?

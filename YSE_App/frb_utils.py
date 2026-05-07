@@ -72,6 +72,7 @@ def addmodify_obj(iclass, data:dict, user):
         add_or_grab_obj(iclass, data, {}, user)
         return 200, 'Added new object'
     
+    msg = 'Modified object'
     # ############################
     # Modify
     data['modified_by'] = user
@@ -80,11 +81,12 @@ def addmodify_obj(iclass, data:dict, user):
     for key in data.keys():
         if key in ['name', 'created_by', 'created_date']:
             continue
-        print(f"Setting {key} to {data[key]}")
+        # For debugging only
+        msg += f"Setting {key} to {data[key]}\n"
         try:
             setattr(obj,key,data[key])
         except:
             return 400, f'Bad value for key: {key}'
     obj.save()
     # Return 
-    return 200, 'Modified object'
+    return 200, msg 
