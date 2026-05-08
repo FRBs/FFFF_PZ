@@ -2033,6 +2033,8 @@ def modify_frbs(request):
 
         # Modify
         amsg = frb_utils.addmodify_obj(FRBTransient, idict, user)
+        msg += amsg
+        print(amsg)
 
         msg += f"Modified {ifrb['name']}\n"
 
