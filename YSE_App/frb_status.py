@@ -23,10 +23,14 @@ all_status = [\
         #   23.0 for Blanco/DECam, 21.0 for Pan-STARRS
         # No successful Image taken
         # No Image pending
+        # Not issued when every frb_tag sets skip_need_image
+        #   (e.g. CHIME-Blind only, CHIME-KKO, CHIME-GBO; HostWG 2026-09)
     'NeedSpectrum', # Needs spectroscopy for redshift
         # P(O|x) of top 2 > P_Ox_min
         # No pending spectrum
         # No succesfully observed spectrum
+        # Top candidate not too faint for its public survey when every
+        #   frb_tag sets skip_need_image (those go to AmbiguousHost)
     'NeedSecondary', # Needs spectroscopy for redshift of a secondary candidate
         # P(O|x) of top 2 > P_Ox_min
         # Successful redshift for the primary
@@ -45,6 +49,9 @@ all_status = [\
         #   is fainter than the maximum(mr_max) for the sample/surveys
     'AmbiguousHost',  # Host is considered too ambiguous for further follow-up
         #  For primary-only, it isn't satisfied and for top two, the top two P(O|x) are not satisfied
+        # Also: top candidate too faint for its public survey (see NeedImage)
+        #   and every frb_tag sets skip_need_image, i.e. no deep imaging
+        #   will be sought, so the host is treated as ambiguous
         # Overridden by any override_blocking_statuses tag
     'UnseenHost',  # Even with deep imaging, no compelling host was found
         # P(U|x) is set
@@ -275,10 +282,20 @@ def set_status(frb):
         return
 
     # #########################################################
-    # Need Spectrum
+    # Need Spectrum (or Ambiguous host for faint, skip_need_image samples)
     # #########################################################
     if frb.host is not None and np.any(criteria['POx'][good_idx]):
-        frb.status = TransientStatus.objects.get(name='NeedSpectrum')
+        # Samples that skip NeedImage (all frb_tags set skip_need_image)
+        #  will never get deeper imaging.  If the top candidate is too
+        #  faint for its public survey (r_too_faint; 21.0 Pan-STARRS,
+        #  23.0 DECam) we do not queue spectroscopy on it but treat the
+        #  host as ambiguous instead.  HostWG decision, 2026-09.
+        # This sits after the Redshift/GoodSpectrum/SpectrumPending/
+        #  NeedSecondary checks so existing follow-up is preserved.
+        if r_too_faint and np.all(criteria['skip_need_image']):
+            frb.status = TransientStatus.objects.get(name='AmbiguousHost')
+        else:
+            frb.status = TransientStatus.objects.get(name='NeedSpectrum')
         frb.save()
         return
 
