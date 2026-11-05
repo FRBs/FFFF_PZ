@@ -190,7 +190,7 @@ def chk_all_criteria(frb):
                 # Check the redshift source
                 tmp_ok = False
                 for gd_source in good_z_sources:
-                    if gd_source in pri_gal.redshift_source:
+                    if gd_source in pri_gal.redshift_source and pri_gal.redshift_quality == 1:
                         tmp_ok = True
                 if tmp_ok:
                     criteria['z_primary'].append(True)
