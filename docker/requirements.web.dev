@@ -1,1 +1,4 @@
 ne2001==0.0.1
+# CA bundle: IRSA (and others) now chain to SSL.com TLS RSA Root CA 2022,
+# first shipped in certifi 2023.7.22. Base image pins certifi==2020.12.5.
+certifi>=2023.7.22
